@@ -43,15 +43,17 @@ export default function PreloadData() {
               // Önce localStorage'dan kontrol et
               const cached = getCache(url)
               if (cached) {
-                console.log(`📦 ${url} cache'den yüklendi`)
-                // SWR cache'ine ekle (revalidate: false = yeniden fetch yapma)
+                console.log(`📦 ${url} localStorage cache'den yüklendi`)
+                // SWR cache'ine hemen ekle (revalidate: false = yeniden fetch yapma)
                 mutate(url, cached, { revalidate: false })
+                
+                // Arka planda fresh data çek ve güncelle
+                fetcher(url).catch(() => {})
               } else {
                 // Cache yoksa API'den çek
                 const data = await fetcher(url)
-                // Hem SWR hem localStorage'a kaydet
+                // SWR cache'ine ekle
                 mutate(url, data, { revalidate: false })
-                setCache(url, data)
                 console.log(`🌐 ${url} API'den yüklendi ve cache'lendi`)
               }
             } catch (error) {
