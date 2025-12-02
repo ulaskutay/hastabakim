@@ -4,6 +4,17 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { FiHome, FiUsers, FiCalendar, FiUser, FiLogOut, FiSettings, FiTag, FiMail } from 'react-icons/fi'
+import { SWRConfig } from 'swr'
+
+// SWR fetcher fonksiyonu
+const fetcher = async (url: string) => {
+  const response = await fetch(url)
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Bilinmeyen hata' }))
+    throw new Error(error.error || 'Veri yüklenirken hata oluştu')
+  }
+  return response.json()
+}
 
 export default function AdminLayout({
   children,
@@ -12,6 +23,7 @@ export default function AdminLayout({
 }) {
   const pathname = usePathname()
   const [primaryColor, setPrimaryColor] = useState('#0ea5e9')
+  const [preloadStarted, setPreloadStarted] = useState(false)
 
   useEffect(() => {
     const stored = localStorage.getItem('tasarimAyarlari')
@@ -20,6 +32,37 @@ export default function AdminLayout({
       setPrimaryColor(parsed.primaryColor || '#0ea5e9')
     }
   }, [])
+
+  // Tüm verileri pre-load yap (ilk açılışta bir kere)
+  useEffect(() => {
+    if (preloadStarted) return
+    
+    setPreloadStarted(true)
+    
+    // Tüm verileri paralel olarak pre-load yap
+    const preloadData = async () => {
+      const startTime = Date.now()
+      console.log('🚀 Tüm veriler pre-load başladı...')
+      
+      try {
+        // Paralel olarak tüm endpoint'leri çağır
+        await Promise.allSettled([
+          fetch('/api/kategoriler').then(r => r.json()),
+          fetch('/api/hastalar').then(r => r.json()),
+          fetch('/api/personel').then(r => r.json()),
+          fetch('/api/randevular').then(r => r.json()),
+        ])
+        
+        const loadTime = Date.now() - startTime
+        console.log(`✅ Tüm veriler pre-load tamamlandı (${loadTime}ms)`)
+        console.log('💾 Artık tüm sayfalar anında açılacak!')
+      } catch (error) {
+        console.error('Pre-load hatası:', error)
+      }
+    }
+    
+    preloadData()
+  }, [preloadStarted])
 
   const menuItems = [
     { href: '/admin', label: 'Dashboard', icon: FiHome },
@@ -32,10 +75,19 @@ export default function AdminLayout({
   ]
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <div className="flex">
-        {/* Sidebar */}
-        <aside className="w-64 bg-gray-900 text-white min-h-screen fixed left-0 top-0 bottom-0">
+    <SWRConfig
+      value={{
+        fetcher,
+        revalidateOnFocus: false,
+        revalidateOnReconnect: true,
+        dedupingInterval: 5000,
+        refreshInterval: 0,
+      }}
+    >
+      <div className="min-h-screen bg-gray-100">
+        <div className="flex">
+          {/* Sidebar */}
+          <aside className="w-64 bg-gray-900 text-white min-h-screen fixed left-0 top-0 bottom-0">
           <div className="p-6 h-full flex flex-col">
             <div>
               <h1 className="text-2xl font-bold mb-8">Admin Panel</h1>
@@ -79,6 +131,7 @@ export default function AdminLayout({
         </main>
       </div>
     </div>
+    </SWRConfig>
   )
 }
 
