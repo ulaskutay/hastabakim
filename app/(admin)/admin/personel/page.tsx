@@ -1,7 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import useSWR, { mutate } from 'swr'
 import { FiPlus, FiEdit, FiTrash2, FiSearch } from 'react-icons/fi'
+import { getCache } from '@/lib/cache'
+import { swrFetcher } from '@/lib/swr-fetcher'
 
 interface Personel {
   id: string
@@ -15,10 +18,26 @@ interface Personel {
 }
 
 export default function PersonelPage() {
-  const [personel, setPersonel] = useState<Personel[]>([])
+  // localStorage'dan initial data al (sayfa yüklenir yüklenmez göster)
+  const cachedData = typeof window !== 'undefined' ? getCache<Personel[]>('/api/personel') : null
+  
+  // SWR ile cache'li veri yükleme
+  const { data: personel = cachedData || [], error, isLoading } = useSWR<Personel[]>(
+    '/api/personel',
+    swrFetcher,
+    {
+      fallbackData: cachedData || undefined, // İlk render'da cache'den göster
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      dedupingInterval: 5000,
+      refreshInterval: 0,
+    }
+  )
+
   const [searchTerm, setSearchTerm] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingPersonel, setEditingPersonel] = useState<Personel | null>(null)
+  const [submitting, setSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     ad: '',
     soyad: '',
@@ -29,27 +48,7 @@ export default function PersonelPage() {
     durum: 'aktif',
   })
 
-  useEffect(() => {
-    loadPersonel()
-  }, [])
-
-  const [loading, setLoading] = useState(true)
-  const [submitting, setSubmitting] = useState(false)
-
-  const loadPersonel = async () => {
-    try {
-      setLoading(true)
-      const response = await fetch('/api/personel')
-      if (response.ok) {
-        const data = await response.json()
-        setPersonel(data)
-      }
-    } catch (error) {
-      console.error('Personel yüklenirken hata:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const loading = isLoading
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -79,8 +78,12 @@ export default function PersonelPage() {
       })
 
       if (response.ok) {
-        await loadPersonel()
-    setIsModalOpen(false)
+        // SWR cache'ini ve localStorage'ı yenile
+        mutate('/api/personel', async () => {
+          const data = await swrFetcher('/api/personel')
+          return data
+        })
+        setIsModalOpen(false)
     setEditingPersonel(null)
     setFormData({
       ad: '',
@@ -128,7 +131,11 @@ export default function PersonelPage() {
       })
 
       if (response.ok) {
-        await loadPersonel()
+        // SWR cache'ini ve localStorage'ı yenile
+        mutate('/api/personel', async () => {
+          const data = await swrFetcher('/api/personel')
+          return data
+        })
       } else {
         const error = await response.json()
         alert('Hata: ' + error.error)
@@ -184,6 +191,17 @@ export default function PersonelPage() {
         </div>
       </div>
 
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+          <p className="text-red-800">Hata: {error.message}</p>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="text-center py-12">
+          <p className="text-gray-600">Yükleniyor...</p>
+        </div>
+      ) : (
       <div className="bg-white rounded-xl shadow-lg overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">

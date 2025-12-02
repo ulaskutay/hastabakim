@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
+    const startTime = Date.now()
     const searchParams = request.nextUrl.searchParams
     const search = searchParams.get('search')
 
@@ -24,6 +25,9 @@ export async function GET(request: NextRequest) {
       where,
       orderBy: { createdAt: 'desc' },
     })
+
+    const queryTime = Date.now() - startTime
+    console.log(`Personel sorgusu ${queryTime}ms sürdü, ${personel.length} personel bulundu`)
 
     return NextResponse.json(personel)
   } catch (error: any) {

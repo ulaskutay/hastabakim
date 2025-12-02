@@ -107,13 +107,13 @@ export default function KategorilerPage() {
           const data = await fetcher('/api/kategoriler')
           return data
         })
-        setIsModalOpen(false)
-        setEditingKategori(null)
-        setFormData({
-          ad: '',
-          aciklama: '',
-          renk: '#3B82F6',
-        })
+    setIsModalOpen(false)
+    setEditingKategori(null)
+    setFormData({
+      ad: '',
+      aciklama: '',
+      renk: '#3B82F6',
+    })
       } else {
         const error = await response.json()
         alert('Hata: ' + error.error)

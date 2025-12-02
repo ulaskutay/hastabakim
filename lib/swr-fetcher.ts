@@ -1,0 +1,42 @@
+// Shared SWR fetcher with localStorage cache support
+import { mutate } from 'swr'
+import { getCache, setCache } from './cache'
+
+export const swrFetcher = async <T = any>(url: string): Promise<T> => {
+  const startTime = Date.now()
+  
+  // Önce localStorage'dan kontrol et
+  const cached = getCache<T>(url)
+  
+  // Arka planda fresh data çek (cache olsa da olmasa da)
+  fetch(url)
+    .then(r => r.json())
+    .then(data => {
+      setCache(url, data)
+      mutate(url, data, { revalidate: false })
+    })
+    .catch(() => {})
+  
+  // Cache varsa hemen göster, yoksa API'den bekle
+  if (cached) {
+    const loadTime = Date.now() - startTime
+    if (loadTime < 10) {
+      // Çok hızlıysa cache'den geldi demektir
+      return cached
+    }
+    return cached
+  }
+  
+  // Cache yoksa API'den çek
+  const response = await fetch(url)
+  
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Bilinmeyen hata' }))
+    throw new Error(error.error || 'Veri yüklenirken hata oluştu')
+  }
+  
+  const data = await response.json()
+  setCache(url, data) // localStorage'a kaydet
+  return data
+}
+
