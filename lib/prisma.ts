@@ -4,21 +4,25 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
-function createPrismaClient() {
-  // Build sırasında DATABASE_URL olmayabilir, bu durumda dummy client oluştur
-  if (process.env.NODE_ENV === 'production' && !process.env.DATABASE_URL) {
-    // Bu durumda build sırasında hata vermesin
+function getPrismaClient(): PrismaClient {
+  if (globalForPrisma.prisma) {
+    return globalForPrisma.prisma
+  }
+
+  // Build sırasında DATABASE_URL olmayabilir, bu durumda hata verme
+  if (!process.env.DATABASE_URL && process.env.NEXT_PHASE === 'phase-production-build') {
+    // Build sırasında dummy client döndür (asla kullanılmayacak)
     return {} as PrismaClient
   }
+
+  const client = new PrismaClient()
   
-  return new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-  })
+  if (process.env.NODE_ENV !== 'production') {
+    globalForPrisma.prisma = client
+  }
+
+  return client
 }
 
-export const prisma: PrismaClient = globalForPrisma.prisma ?? createPrismaClient()
-
-if (process.env.NODE_ENV !== 'production') {
-  globalForPrisma.prisma = prisma
-}
+export const prisma = getPrismaClient()
 
