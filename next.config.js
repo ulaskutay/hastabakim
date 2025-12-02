@@ -1,12 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // Build sırasında API route'larını analiz etme
   experimental: {
     serverActions: {
       bodySizeLimit: '2mb',
     },
   },
+  // API route'ları için özel ayarlar
+  output: 'standalone',
 }
 
 module.exports = nextConfig
