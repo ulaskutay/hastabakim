@@ -1,7 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import useSWR, { mutate } from 'swr'
 import { FiPlus, FiEdit, FiTrash2, FiCalendar } from 'react-icons/fi'
+import { getCache } from '@/lib/cache'
+import { swrFetcher } from '@/lib/swr-fetcher'
 
 interface Randevu {
   id: string
@@ -12,15 +15,72 @@ interface Randevu {
   tarih: string
   saat: string
   durum: string
-  notlar: string
+  notlar: string | null
+}
+
+interface Hasta {
+  id: string
+  ad: string
+  soyad: string
+}
+
+interface Personel {
+  id: string
+  ad: string
+  soyad: string
 }
 
 export default function RandevularPage() {
-  const [randevular, setRandevular] = useState<Randevu[]>([])
-  const [hastalar, setHastalar] = useState<any[]>([])
-  const [personel, setPersonel] = useState<any[]>([])
+  // localStorage'dan initial data al
+  const cachedRandevular = typeof window !== 'undefined' ? getCache<Randevu[]>('/api/randevular') : null
+  const cachedHastalar = typeof window !== 'undefined' ? getCache<Hasta[]>('/api/hastalar') : null
+  const cachedPersonel = typeof window !== 'undefined' ? getCache<Personel[]>('/api/personel') : null
+  
+  // SWR ile cache'li veri yükleme - Randevular
+  const { data: randevular = cachedRandevular || [], error: randevularError, isLoading: randevularLoading } = useSWR<Randevu[]>(
+    '/api/randevular',
+    swrFetcher,
+    {
+      fallbackData: cachedRandevular || undefined,
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      dedupingInterval: 5000,
+      refreshInterval: 0,
+    }
+  )
+
+  // SWR ile cache'li veri yükleme - Hastalar
+  const { data: hastalarData = cachedHastalar || [], error: hastalarError } = useSWR<Hasta[]>(
+    '/api/hastalar',
+    swrFetcher,
+    {
+      fallbackData: cachedHastalar || undefined,
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      dedupingInterval: 5000,
+      refreshInterval: 0,
+    }
+  )
+
+  // SWR ile cache'li veri yükleme - Personel
+  const { data: personelData = cachedPersonel || [], error: personelError } = useSWR<Personel[]>(
+    '/api/personel',
+    swrFetcher,
+    {
+      fallbackData: cachedPersonel || undefined,
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      dedupingInterval: 5000,
+      refreshInterval: 0,
+    }
+  )
+
+  const hastalar = hastalarData
+  const personel = personelData
+
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingRandevu, setEditingRandevu] = useState<Randevu | null>(null)
+  const [submitting, setSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     hastaId: '',
     personelId: '',
@@ -30,59 +90,71 @@ export default function RandevularPage() {
     notlar: '',
   })
 
-  useEffect(() => {
-    loadData()
-  }, [])
+  const loading = randevularLoading
 
-  const loadData = () => {
-    const storedRandevular = localStorage.getItem('randevular')
-    const storedHastalar = localStorage.getItem('hastalar')
-    const storedPersonel = localStorage.getItem('personel')
-    
-    if (storedRandevular) setRandevular(JSON.parse(storedRandevular))
-    if (storedHastalar) setHastalar(JSON.parse(storedHastalar))
-    if (storedPersonel) setPersonel(JSON.parse(storedPersonel))
-  }
-
-  const saveRandevular = (newRandevular: Randevu[]) => {
-    localStorage.setItem('randevular', JSON.stringify(newRandevular))
-    setRandevular(newRandevular)
-  }
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const hasta = hastalar.find((h) => h.id === formData.hastaId)
-    const personelItem = personel.find((p) => p.id === formData.personelId)
+    setSubmitting(true)
 
-    const newRandevu: Randevu = {
-      id: editingRandevu?.id || Date.now().toString(),
-      hastaId: formData.hastaId,
-      hastaAd: hasta ? `${hasta.ad} ${hasta.soyad}` : '',
-      personelId: formData.personelId,
-      personelAd: personelItem ? `${personelItem.ad} ${personelItem.soyad}` : '',
-      tarih: formData.tarih,
-      saat: formData.saat,
-      durum: formData.durum,
-      notlar: formData.notlar,
+    try {
+      const url = editingRandevu ? `/api/randevular/${editingRandevu.id}` : '/api/randevular'
+      const method = editingRandevu ? 'PUT' : 'POST'
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          hastaId: formData.hastaId,
+          personelId: formData.personelId,
+          tarih: formData.tarih,
+          saat: formData.saat,
+          durum: formData.durum || 'planlandi',
+          notlar: formData.notlar || null,
+        }),
+      })
+
+      if (response.ok) {
+        const newRandevu = await response.json()
+        
+        // Optimistic update - hemen UI'yi güncelle
+        mutate('/api/randevular', (current: Randevu[] = []) => {
+          if (editingRandevu) {
+            // Güncelleme
+            return current.map(r => r.id === editingRandevu.id ? newRandevu : r)
+          } else {
+            // Yeni ekleme
+            return [...current, newRandevu]
+          }
+        }, false) // revalidate: false = hemen güncelle, arka planda fresh data çekme
+        
+        // Arka planda fresh data çek ve güncelle
+        mutate('/api/randevular', async () => {
+          const data = await swrFetcher('/api/randevular')
+          return data
+        })
+        
+        setIsModalOpen(false)
+        setEditingRandevu(null)
+        setFormData({
+          hastaId: '',
+          personelId: '',
+          tarih: '',
+          saat: '',
+          durum: 'planlandi',
+          notlar: '',
+        })
+      } else {
+        const error = await response.json()
+        alert('Hata: ' + error.error)
+      }
+    } catch (error: any) {
+      console.error('Hata:', error)
+      alert('Bir hata oluştu: ' + error.message)
+    } finally {
+      setSubmitting(false)
     }
-
-    if (editingRandevu) {
-      const updated = randevular.map((r) => (r.id === editingRandevu.id ? newRandevu : r))
-      saveRandevular(updated)
-    } else {
-      saveRandevular([...randevular, newRandevu])
-    }
-
-    setIsModalOpen(false)
-    setEditingRandevu(null)
-    setFormData({
-      hastaId: '',
-      personelId: '',
-      tarih: '',
-      saat: '',
-      durum: 'planlandi',
-      notlar: '',
-    })
   }
 
   const handleEdit = (randevu: Randevu) => {
@@ -93,14 +165,39 @@ export default function RandevularPage() {
       tarih: randevu.tarih,
       saat: randevu.saat,
       durum: randevu.durum,
-      notlar: randevu.notlar,
+      notlar: randevu.notlar || '',
     })
     setIsModalOpen(true)
   }
 
-  const handleDelete = (id: string) => {
-    if (confirm('Bu randevuyu silmek istediğinizden emin misiniz?')) {
-      saveRandevular(randevular.filter((r) => r.id !== id))
+  const handleDelete = async (id: string) => {
+    if (!confirm('Bu randevuyu silmek istediğinizden emin misiniz?')) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/randevular/${id}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        // Optimistic update - hemen UI'den kaldır
+        mutate('/api/randevular', (current: Randevu[] = []) => {
+          return current.filter(r => r.id !== id)
+        }, false) // revalidate: false = hemen güncelle
+        
+        // Arka planda fresh data çek ve güncelle
+        mutate('/api/randevular', async () => {
+          const data = await swrFetcher('/api/randevular')
+          return data
+        })
+      } else {
+        const error = await response.json()
+        alert('Hata: ' + error.error)
+      }
+    } catch (error: any) {
+      console.error('Hata:', error)
+      alert('Bir hata oluştu: ' + error.message)
     }
   }
 
@@ -134,6 +231,12 @@ export default function RandevularPage() {
     }
   }
 
+  const sortedRandevular = [...randevular].sort((a, b) => {
+    const dateA = new Date(a.tarih + ' ' + a.saat).getTime()
+    const dateB = new Date(b.tarih + ' ' + b.saat).getTime()
+    return dateA - dateB
+  })
+
   return (
     <div>
       <div className="flex justify-between items-center mb-8">
@@ -158,6 +261,19 @@ export default function RandevularPage() {
         </button>
       </div>
 
+      {(randevularError || hastalarError || personelError) && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+          <p className="text-red-800">
+            Hata: {randevularError?.message || hastalarError?.message || personelError?.message}
+          </p>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="text-center py-12">
+          <p className="text-gray-600">Yükleniyor...</p>
+        </div>
+      ) : (
       <div className="bg-white rounded-xl shadow-lg overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -184,59 +300,58 @@ export default function RandevularPage() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {randevular.length === 0 ? (
+              {sortedRandevular.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
                     Henüz randevu kaydı bulunmamaktadır.
                   </td>
                 </tr>
               ) : (
-                randevular
-                  .sort((a, b) => new Date(a.tarih).getTime() - new Date(b.tarih).getTime())
-                  .map((randevu) => (
-                    <tr key={randevu.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {randevu.hastaAd}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {randevu.personelAd}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(randevu.tarih).toLocaleDateString('tr-TR')}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {randevu.saat}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span
-                          className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getDurumColor(
-                            randevu.durum
-                          )}`}
-                        >
-                          {getDurumText(randevu.durum)}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button
-                          onClick={() => handleEdit(randevu)}
-                          className="text-primary-600 hover:text-primary-900 mr-4"
-                        >
-                          <FiEdit />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(randevu.id)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          <FiTrash2 />
-                        </button>
-                      </td>
-                    </tr>
-                  ))
+                sortedRandevular.map((randevu) => (
+                  <tr key={randevu.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {randevu.hastaAd}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {randevu.personelAd}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {new Date(randevu.tarih).toLocaleDateString('tr-TR')}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {randevu.saat}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getDurumColor(
+                          randevu.durum
+                        )}`}
+                      >
+                        {getDurumText(randevu.durum)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <button
+                        onClick={() => handleEdit(randevu)}
+                        className="text-primary-600 hover:text-primary-900 mr-4"
+                      >
+                        <FiEdit />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(randevu.id)}
+                        className="text-red-600 hover:text-red-900"
+                      >
+                        <FiTrash2 />
+                      </button>
+                    </td>
+                  </tr>
+                ))
               )}
             </tbody>
           </table>
         </div>
       </div>
+      )}
 
       {/* Modal */}
       {isModalOpen && (
@@ -337,9 +452,10 @@ export default function RandevularPage() {
               <div className="flex space-x-4">
                 <button
                   type="submit"
-                  className="flex-1 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition"
+                  disabled={submitting}
+                  className="flex-1 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {editingRandevu ? 'Güncelle' : 'Ekle'}
+                  {submitting ? 'Kaydediliyor...' : editingRandevu ? 'Güncelle' : 'Ekle'}
                 </button>
                 <button
                   type="button"
@@ -359,4 +475,3 @@ export default function RandevularPage() {
     </div>
   )
 }
-
