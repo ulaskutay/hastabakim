@@ -12,23 +12,26 @@ interface Kategori {
   renk: string
 }
 
-// SWR fetcher fonksiyonu - localStorage cache kullanıyor
+// SWR fetcher fonksiyonu - localStorage cache kullanıyor (stale-while-revalidate)
 const fetcher = async (url: string) => {
   const startTime = Date.now()
   
   // Önce localStorage'dan kontrol et
   const cached = getCache(url)
+  
+  // Arka planda fresh data çek (cache olsa da olmasa da)
+  fetch(url)
+    .then(r => r.json())
+    .then(data => {
+      setCache(url, data)
+      mutate(url, data, { revalidate: false })
+    })
+    .catch(() => {})
+  
+  // Cache varsa hemen göster, yoksa API'den bekle
   if (cached) {
     const loadTime = Date.now() - startTime
-    console.log(`Kategoriler yüklendi (${loadTime}ms) - 📦 Cache`)
-    // Arka planda fresh data çek (stale-while-revalidate)
-    fetch(url)
-      .then(r => r.json())
-      .then(data => {
-        setCache(url, data)
-        mutate(url, data, { revalidate: false })
-      })
-      .catch(() => {})
+    console.log(`Kategoriler yüklendi (${loadTime}ms) - 📦 Cache (arka planda güncelleniyor)`)
     return cached
   }
   
