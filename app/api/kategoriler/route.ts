@@ -6,10 +6,16 @@ export const dynamic = 'force-dynamic'
 export async function GET() {
   try {
     console.log('Kategoriler yükleniyor...')
+    console.log('DATABASE_URL var mı?', !!process.env.DATABASE_URL)
+    
+    // Prisma bağlantısını test et
+    await prisma.$connect()
+    
     const kategoriler = await prisma.kategori.findMany({
       orderBy: { createdAt: 'desc' },
     })
     console.log(`${kategoriler.length} kategori bulundu`)
+    
     return NextResponse.json(kategoriler)
   } catch (error: any) {
     console.error('Kategoriler yüklenirken hata:', error)
@@ -17,11 +23,25 @@ export async function GET() {
       message: error.message,
       code: error.code,
       meta: error.meta,
+      stack: error.stack,
     })
+    
+    // Daha detaylı hata mesajı
+    let errorMessage = 'Kategoriler yüklenirken hata oluştu: ' + error.message
+    
+    if (error.code === 'P1001') {
+      errorMessage = 'Veritabanı sunucusuna ulaşılamıyor. Lütfen bağlantı ayarlarını kontrol edin.'
+    } else if (error.code === 'P1000') {
+      errorMessage = 'Veritabanı kimlik doğrulama hatası. DATABASE_URL kontrol edin.'
+    } else if (!process.env.DATABASE_URL) {
+      errorMessage = 'DATABASE_URL environment variable tanımlı değil.'
+    }
+    
     return NextResponse.json(
       { 
-        error: 'Kategoriler yüklenirken hata oluştu: ' + error.message,
-        details: error.code || error.meta || null,
+        error: errorMessage,
+        code: error.code || null,
+        details: error.meta || null,
       },
       { status: 500 }
     )
