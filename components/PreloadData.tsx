@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useSWRConfig } from 'swr'
+import { getCache, setCache } from '@/lib/cache'
 
 // Fetcher fonksiyonu
 const fetcher = async (url: string) => {
@@ -22,13 +23,12 @@ export default function PreloadData() {
     
     setPreloadStarted(true)
     
-    // Tüm verileri pre-load yap (SWR cache'ine ekle)
+    // Tüm verileri pre-load yap (SWR cache'ine ve localStorage'a ekle)
     const preloadAllData = async () => {
       const startTime = Date.now()
       console.log('🚀 Tüm veriler pre-load başladı...')
       
       try {
-        // Paralel olarak tüm endpoint'leri çağır ve SWR cache'ine ekle
         const endpoints = [
           '/api/kategoriler',
           '/api/hastalar',
@@ -36,13 +36,24 @@ export default function PreloadData() {
           '/api/randevular',
         ]
         
-        // Her endpoint'i fetch edip cache'e ekle
+        // Önce localStorage'dan cache kontrol et, yoksa API'den çek
         await Promise.allSettled(
           endpoints.map(async (url) => {
             try {
-              const data = await fetcher(url)
-              // SWR cache'ine ekle (revalidate: false = hemen cache'le)
-              mutate(url, data, { revalidate: false })
+              // Önce localStorage'dan kontrol et
+              const cached = getCache(url)
+              if (cached) {
+                console.log(`📦 ${url} cache'den yüklendi`)
+                // SWR cache'ine ekle (revalidate: false = yeniden fetch yapma)
+                mutate(url, cached, { revalidate: false })
+              } else {
+                // Cache yoksa API'den çek
+                const data = await fetcher(url)
+                // Hem SWR hem localStorage'a kaydet
+                mutate(url, data, { revalidate: false })
+                setCache(url, data)
+                console.log(`🌐 ${url} API'den yüklendi ve cache'lendi`)
+              }
             } catch (error) {
               console.error(`${url} pre-load hatası:`, error)
             }

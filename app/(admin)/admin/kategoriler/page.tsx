@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import useSWR, { mutate } from 'swr'
 import { FiPlus, FiEdit, FiTrash2, FiTag } from 'react-icons/fi'
+import { getCache, setCache } from '@/lib/cache'
 
 interface Kategori {
   id: string
@@ -11,9 +12,27 @@ interface Kategori {
   renk: string
 }
 
-// SWR fetcher fonksiyonu
+// SWR fetcher fonksiyonu - localStorage cache kullanıyor
 const fetcher = async (url: string) => {
   const startTime = Date.now()
+  
+  // Önce localStorage'dan kontrol et
+  const cached = getCache(url)
+  if (cached) {
+    const loadTime = Date.now() - startTime
+    console.log(`Kategoriler yüklendi (${loadTime}ms) - 📦 Cache`)
+    // Arka planda fresh data çek (stale-while-revalidate)
+    fetch(url)
+      .then(r => r.json())
+      .then(data => {
+        setCache(url, data)
+        mutate(url, data, { revalidate: false })
+      })
+      .catch(() => {})
+    return cached
+  }
+  
+  // Cache yoksa API'den çek
   const response = await fetch(url)
   const loadTime = Date.now() - startTime
   
@@ -23,7 +42,8 @@ const fetcher = async (url: string) => {
   }
   
   const data = await response.json()
-  console.log(`Kategoriler yüklendi (${loadTime}ms) - ${loadTime < 200 ? 'Cache' : 'API'}`)
+  setCache(url, data) // localStorage'a kaydet
+  console.log(`Kategoriler yüklendi (${loadTime}ms) - 🌐 API`)
   return data
 }
 
