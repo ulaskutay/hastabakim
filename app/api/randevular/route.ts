@@ -47,7 +47,19 @@ export async function GET(request: NextRequest) {
     })
 
     // Frontend'deki format'a uygun hale getir
-    const formattedRandevular = randevular.map((r: (typeof randevular)[number]) => ({
+    const formattedRandevular = randevular.map((r: {
+      id: string
+      hastaId: string
+      hasta: { ad: string; soyad: string }
+      personelId: string
+      personel: { ad: string; soyad: string }
+      tarih: Date
+      saat: string
+      durum: string
+      notlar: string | null
+      createdAt: Date
+      updatedAt: Date
+    }) => ({
       id: r.id,
       hastaId: r.hastaId,
       hastaAd: `${r.hasta.ad} ${r.hasta.soyad}`,
