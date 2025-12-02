@@ -51,11 +51,15 @@ const fetcher = async (url: string) => {
 }
 
 export default function KategorilerPage() {
+  // localStorage'dan initial data al (sayfa yüklenir yüklenmez göster)
+  const cachedData = typeof window !== 'undefined' ? getCache<Kategori[]>('/api/kategoriler') : null
+  
   // SWR ile cache'li veri yükleme
-  const { data: kategoriler = [], error, isLoading } = useSWR<Kategori[]>(
+  const { data: kategoriler = cachedData || [], error, isLoading } = useSWR<Kategori[]>(
     '/api/kategoriler',
     fetcher,
     {
+      fallbackData: cachedData || undefined, // İlk render'da cache'den göster
       revalidateOnFocus: false, // Focus olduğunda yenileme
       revalidateOnReconnect: true, // Bağlantı yenilendiğinde yenile
       dedupingInterval: 5000, // 5 saniye içinde aynı istek tekrar yapılmaz
