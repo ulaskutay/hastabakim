@@ -47,7 +47,14 @@ export async function GET(request: NextRequest) {
     })
 
     // Frontend'deki format'a uygun hale getir
-    const formattedRandevular = randevular.map((r) => ({
+    type RandevuItem = Awaited<ReturnType<typeof prisma.randevu.findMany<{
+      include: {
+        hasta: { include: { kategori: true } }
+        personel: true
+      }
+    }>>>[0]
+    
+    const formattedRandevular = randevular.map((r: RandevuItem) => ({
       id: r.id,
       hastaId: r.hastaId,
       hastaAd: `${r.hasta.ad} ${r.hasta.soyad}`,
