@@ -95,8 +95,11 @@ export default function KategorilerPage() {
       })
 
       if (response.ok) {
-        // SWR cache'ini yenile
-        mutate('/api/kategoriler')
+        // SWR cache'ini ve localStorage'ı yenile
+        mutate('/api/kategoriler', async () => {
+          const data = await fetcher('/api/kategoriler')
+          return data
+        })
         setIsModalOpen(false)
         setEditingKategori(null)
         setFormData({
@@ -137,8 +140,11 @@ export default function KategorilerPage() {
       })
 
       if (response.ok) {
-        // SWR cache'ini yenile
-        mutate('/api/kategoriler')
+        // SWR cache'ini ve localStorage'ı yenile
+        mutate('/api/kategoriler', async () => {
+          const data = await fetcher('/api/kategoriler')
+          return data
+        })
       } else {
         const error = await response.json()
         alert('Hata: ' + error.error)
