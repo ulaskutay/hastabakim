@@ -129,10 +129,22 @@ RECIPIENT_EMAIL=info@hastabakim.com
 
 ### Adım 2: Database URL'i Alma
 
+**Vercel için Connection Pooling URL kullanmalısınız!**
+
 1. Supabase dashboard'a gidin
 2. Sol menüden "Settings" > "Database" seçin
-3. "Connection string" bölümünde "URI" sekmesine tıklayın
-4. Connection string'i kopyalayın (örnek formatı aşağıda)
+3. "Connection string" bölümünde **"Connection Pooling"** sekmesine tıklayın
+4. **"Transaction Mode"** seçeneğini seçin (Prisma için uygun)
+5. Connection string'i kopyalayın
+
+**Önemli:** Port **6543** olmalı ve `?pgbouncer=true` parametresi olmalı!
+
+**Örnek format:**
+```
+postgresql://postgres.[PROJECT-REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres?pgbouncer=true
+```
+
+**NOT:** Eğer "URI" sekmesinden (port 5432) alırsanız, Vercel'de bağlantı hatası alabilirsiniz!
 
 ### Adım 3: Environment Variables Ayarlama
 
@@ -176,7 +188,9 @@ Bu komutlar şu tabloları oluşturur:
 3. "Import Project" butonuna tıklayın
 4. GitHub repository'nizi seçin
 5. Environment Variables ekleyin:
-   - `DATABASE_URL`: Supabase'den aldığınız connection string
+   - `DATABASE_URL`: Supabase Connection Pooling URL'i (port 6543, `?pgbouncer=true` ile)
+     - **ÖNEMLİ:** Connection Pooling URL'i kullanın, direkt bağlantı (port 5432) değil!
+     - Detaylı bilgi için: `VERCEL_SUPABASE_FIX.md` dosyasına bakın
    - `SMTP_HOST`, `SMTP_PORT`, vb. SMTP ayarları
 6. "Deploy" butonuna tıklayın
 
