@@ -1,38 +1,92 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import useSWR from 'swr'
 import { FiUsers, FiCalendar, FiUser, FiActivity } from 'react-icons/fi'
 import Link from 'next/link'
+import { getCache } from '@/lib/cache'
+import { swrFetcher } from '@/lib/swr-fetcher'
+
+interface Hasta {
+  id: string
+  ad: string
+  soyad: string
+}
+
+interface Personel {
+  id: string
+  ad: string
+  soyad: string
+}
+
+interface Randevu {
+  id: string
+  durum: string
+}
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState({
-    hastalar: 0,
-    randevular: 0,
-    personel: 0,
-    aktifBakimlar: 0,
-  })
   const [primaryColor, setPrimaryColor] = useState('#0ea5e9')
 
-  useEffect(() => {
-    // localStorage'dan verileri al
-    const hastalar = JSON.parse(localStorage.getItem('hastalar') || '[]')
-    const randevular = JSON.parse(localStorage.getItem('randevular') || '[]')
-    const personel = JSON.parse(localStorage.getItem('personel') || '[]')
-    
-    setStats({
-      hastalar: hastalar.length,
-      randevular: randevular.length,
-      personel: personel.length,
-      aktifBakimlar: randevular.filter((r: any) => r.durum === 'aktif').length,
-    })
+  // localStorage'dan initial data al
+  const cachedHastalar = typeof window !== 'undefined' ? getCache<Hasta[]>('/api/hastalar') : null
+  const cachedRandevular = typeof window !== 'undefined' ? getCache<Randevu[]>('/api/randevular') : null
+  const cachedPersonel = typeof window !== 'undefined' ? getCache<Personel[]>('/api/personel') : null
 
-    // Tasarım ayarlarından renk al
+  // SWR ile cache'li veri yükleme
+  const { data: hastalar = cachedHastalar || [] } = useSWR<Hasta[]>(
+    '/api/hastalar',
+    swrFetcher,
+    {
+      fallbackData: cachedHastalar || undefined,
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      dedupingInterval: 5000,
+      refreshInterval: 0,
+    }
+  )
+
+  const { data: randevular = cachedRandevular || [] } = useSWR<Randevu[]>(
+    '/api/randevular',
+    swrFetcher,
+    {
+      fallbackData: cachedRandevular || undefined,
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      dedupingInterval: 5000,
+      refreshInterval: 0,
+    }
+  )
+
+  const { data: personel = cachedPersonel || [] } = useSWR<Personel[]>(
+    '/api/personel',
+    swrFetcher,
+    {
+      fallbackData: cachedPersonel || undefined,
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      dedupingInterval: 5000,
+      refreshInterval: 0,
+    }
+  )
+
+  // Tasarım ayarlarından renk al
+  if (typeof window !== 'undefined') {
     const tasarimAyarlari = localStorage.getItem('tasarimAyarlari')
     if (tasarimAyarlari) {
       const parsed = JSON.parse(tasarimAyarlari)
-      setPrimaryColor(parsed.primaryColor || '#0ea5e9')
+      if (parsed.primaryColor && parsed.primaryColor !== primaryColor) {
+        setPrimaryColor(parsed.primaryColor)
+      }
     }
-  }, [])
+  }
+
+  // İstatistikleri hesapla
+  const stats = {
+    hastalar: hastalar?.length || 0,
+    randevular: randevular?.length || 0,
+    personel: personel?.length || 0,
+    aktifBakimlar: randevular?.filter((r) => r.durum === 'aktif').length || 0,
+  }
 
   const statCards = [
     {
@@ -133,4 +187,3 @@ export default function AdminDashboard() {
     </div>
   )
 }
-
