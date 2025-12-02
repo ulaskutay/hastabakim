@@ -29,12 +29,23 @@ export default function KategorilerPage() {
   const loadKategoriler = async () => {
     try {
       setLoading(true)
-      console.log('Kategoriler yükleniyor...')
-      const response = await fetch('/api/kategoriler')
+      
+      // Fetch ile timeout ekle (10 saniye)
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 10000)
+      
+      const startTime = Date.now()
+      const response = await fetch('/api/kategoriler', {
+        signal: controller.signal,
+        cache: 'no-store', // Her zaman fresh data
+      })
+      clearTimeout(timeoutId)
+      
+      const loadTime = Date.now() - startTime
+      console.log(`Kategoriler yüklendi (${loadTime}ms)`)
       
       if (response.ok) {
         const data = await response.json()
-        console.log('Kategoriler yüklendi:', data)
         setKategoriler(data || [])
       } else {
         const errorData = await response.json().catch(() => ({ error: 'Bilinmeyen hata' }))
@@ -42,8 +53,13 @@ export default function KategorilerPage() {
         alert('Kategoriler yüklenemedi: ' + (errorData.error || 'Bilinmeyen hata'))
       }
     } catch (error: any) {
-      console.error('Hata:', error)
-      alert('Kategoriler yüklenirken bir hata oluştu: ' + error.message)
+      if (error.name === 'AbortError') {
+        console.error('İstek zaman aşımına uğradı (10 saniye)')
+        alert('İstek çok uzun sürdü. Lütfen tekrar deneyin veya veritabanı bağlantısını kontrol edin.')
+      } else {
+        console.error('Hata:', error)
+        alert('Kategoriler yüklenirken bir hata oluştu: ' + error.message)
+      }
     } finally {
       setLoading(false)
     }

@@ -5,10 +5,15 @@ export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
+    const startTime = Date.now()
+    
     // Prisma otomatik olarak bağlanır, $connect() gerekmez
     const kategoriler = await prisma.kategori.findMany({
       orderBy: { createdAt: 'desc' },
     })
+    
+    const queryTime = Date.now() - startTime
+    console.log(`Kategoriler sorgusu ${queryTime}ms sürdü, ${kategoriler.length} kategori bulundu`)
     
     return NextResponse.json(kategoriler)
   } catch (error: any) {
