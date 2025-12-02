@@ -289,6 +289,7 @@ export default function PersonelPage() {
           </table>
         </div>
       </div>
+      )}
 
       {/* Modal */}
       {isModalOpen && (

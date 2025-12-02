@@ -19,11 +19,6 @@ export const swrFetcher = async <T = any>(url: string): Promise<T> => {
   
   // Cache varsa hemen göster, yoksa API'den bekle
   if (cached) {
-    const loadTime = Date.now() - startTime
-    if (loadTime < 10) {
-      // Çok hızlıysa cache'den geldi demektir
-      return cached
-    }
     return cached
   }
   
