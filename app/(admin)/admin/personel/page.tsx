@@ -68,11 +68,11 @@ export default function PersonelPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          ad: formData.ad,
-          soyad: formData.soyad,
-          telefon: formData.telefon,
+      ad: formData.ad,
+      soyad: formData.soyad,
+      telefon: formData.telefon,
           email: formData.email || null,
-          pozisyon: formData.pozisyon,
+      pozisyon: formData.pozisyon,
           sertifika: formData.sertifika || null,
           durum: formData.durum || 'aktif',
         }),
@@ -80,17 +80,17 @@ export default function PersonelPage() {
 
       if (response.ok) {
         await loadPersonel()
-        setIsModalOpen(false)
-        setEditingPersonel(null)
-        setFormData({
-          ad: '',
-          soyad: '',
-          telefon: '',
-          email: '',
-          pozisyon: '',
-          sertifika: '',
-          durum: 'aktif',
-        })
+    setIsModalOpen(false)
+    setEditingPersonel(null)
+    setFormData({
+      ad: '',
+      soyad: '',
+      telefon: '',
+      email: '',
+      pozisyon: '',
+      sertifika: '',
+      durum: 'aktif',
+    })
       } else {
         const error = await response.json()
         alert('Hata: ' + error.error)

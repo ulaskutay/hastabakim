@@ -66,21 +66,21 @@ export default function KategorilerPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          ad: formData.ad,
+      ad: formData.ad,
           aciklama: formData.aciklama || null,
-          renk: formData.renk,
+      renk: formData.renk,
         }),
       })
 
       if (response.ok) {
         await loadKategoriler()
-        setIsModalOpen(false)
-        setEditingKategori(null)
-        setFormData({
-          ad: '',
-          aciklama: '',
-          renk: '#3B82F6',
-        })
+    setIsModalOpen(false)
+    setEditingKategori(null)
+    setFormData({
+      ad: '',
+      aciklama: '',
+      renk: '#3B82F6',
+    })
       } else {
         const error = await response.json()
         alert('Hata: ' + error.error)
@@ -174,8 +174,8 @@ export default function KategorilerPage() {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {kategoriler.map((kategori) => (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {kategoriler.map((kategori) => (
           <div
             key={kategori.id}
             className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition"
@@ -217,8 +217,8 @@ export default function KategorilerPage() {
               </button>
             </div>
           </div>
-          ))}
-        </div>
+        ))}
+      </div>
       )}
 
       {/* Modal */}

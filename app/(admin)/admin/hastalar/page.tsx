@@ -96,11 +96,11 @@ export default function HastalarPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          ad: formData.ad,
-          soyad: formData.soyad,
-          telefon: formData.telefon,
+      ad: formData.ad,
+      soyad: formData.soyad,
+      telefon: formData.telefon,
           email: formData.email || null,
-          yas: parseInt(formData.yas),
+      yas: parseInt(formData.yas),
           adres: formData.adres || null,
           kategoriId: formData.kategori,
           durum: formData.durum || 'aktif',
@@ -109,18 +109,18 @@ export default function HastalarPage() {
 
       if (response.ok) {
         await loadHastalar()
-        setIsModalOpen(false)
-        setEditingHasta(null)
-        setFormData({
-          ad: '',
-          soyad: '',
-          telefon: '',
-          email: '',
-          yas: '',
-          adres: '',
-          kategori: '',
-          durum: 'aktif',
-        })
+    setIsModalOpen(false)
+    setEditingHasta(null)
+    setFormData({
+      ad: '',
+      soyad: '',
+      telefon: '',
+      email: '',
+      yas: '',
+      adres: '',
+      kategori: '',
+      durum: 'aktif',
+    })
       } else {
         const error = await response.json()
         alert('Hata: ' + error.error)

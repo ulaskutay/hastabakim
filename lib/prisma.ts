@@ -10,16 +10,9 @@ function createPrismaClient(): PrismaClient {
     throw new Error('DATABASE_URL environment variable is not set')
   }
 
-  // Connection string'i optimize et
-  let databaseUrl = process.env.DATABASE_URL
-  
-  // Connection pool parametrelerini ekle (eğer yoksa)
-  // Supabase Connection Pooling için optimize edilmiş ayarlar
-  if (!databaseUrl.includes('connection_limit')) {
-    const separator = databaseUrl.includes('?') ? '&' : '?'
-    // Connection pool ayarları - Vercel/serverless için optimize
-    databaseUrl = `${databaseUrl}${separator}connection_limit=5&pool_timeout=5&connect_timeout=5`
-  }
+  // Connection string zaten optimize edilmiş (Connection Pooling URL)
+  // Supabase Connection Pooling otomatik olarak connection pool yönetir
+  // Ekstra parametre eklemeye gerek yok, Supabase'in kendi pooler'ı var
 
   return new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],

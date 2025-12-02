@@ -78,7 +78,7 @@ export default function Contact() {
           type: 'success',
           message: 'Mesajınız başarıyla gönderildi! En kısa sürede size dönüş yapacağız.',
         })
-        setFormData({ name: '', email: '', phone: '', message: '' })
+    setFormData({ name: '', email: '', phone: '', message: '' })
         
         // 5 saniye sonra başarı mesajını kaldır
         setTimeout(() => {
@@ -250,7 +250,7 @@ export default function Contact() {
                   {submitStatus.message}
                 </div>
               )}
-
+              
               <button
                 type="submit"
                 disabled={submitting}
@@ -258,13 +258,13 @@ export default function Contact() {
                 style={{ backgroundColor: ayarlar.primaryColor }}
                 onMouseEnter={(e) => {
                   if (!submitting) {
-                    const rgb = hexToRgb(ayarlar.primaryColor)
-                    e.currentTarget.style.backgroundColor = `rgb(${Math.max(0, rgb.r - 20)}, ${Math.max(0, rgb.g - 20)}, ${Math.max(0, rgb.b - 20)})`
+                  const rgb = hexToRgb(ayarlar.primaryColor)
+                  e.currentTarget.style.backgroundColor = `rgb(${Math.max(0, rgb.r - 20)}, ${Math.max(0, rgb.g - 20)}, ${Math.max(0, rgb.b - 20)})`
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (!submitting) {
-                    e.currentTarget.style.backgroundColor = ayarlar.primaryColor
+                  e.currentTarget.style.backgroundColor = ayarlar.primaryColor
                   }
                 }}
               >
@@ -278,8 +278,8 @@ export default function Contact() {
                   </>
                 ) : (
                   <>
-                    <span>Gönder</span>
-                    <FiSend />
+                <span>Gönder</span>
+                <FiSend />
                   </>
                 )}
               </button>
