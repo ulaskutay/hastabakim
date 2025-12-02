@@ -3,8 +3,18 @@
 import { useEffect, useState } from 'react'
 import { useSWRConfig } from 'swr'
 
+// Fetcher fonksiyonu
+const fetcher = async (url: string) => {
+  const response = await fetch(url)
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Bilinmeyen hata' }))
+    throw new Error(error.error || 'Veri yüklenirken hata oluştu')
+  }
+  return response.json()
+}
+
 export default function PreloadData() {
-  const { mutate } = useSWRConfig()
+  const { mutate, cache } = useSWRConfig()
   const [preloadStarted, setPreloadStarted] = useState(false)
 
   useEffect(() => {
@@ -21,10 +31,10 @@ export default function PreloadData() {
         // SWR'ın mutate fonksiyonu ile pre-fetch yap
         // Bu veriler cache'lenecek ve sayfalar anında açılacak
         await Promise.allSettled([
-          mutate('/api/kategoriler'),
-          mutate('/api/hastalar'),
-          mutate('/api/personel'),
-          mutate('/api/randevular'),
+          mutate('/api/kategoriler', () => fetcher('/api/kategoriler'), { revalidate: false }),
+          mutate('/api/hastalar', () => fetcher('/api/hastalar'), { revalidate: false }),
+          mutate('/api/personel', () => fetcher('/api/personel'), { revalidate: false }),
+          mutate('/api/randevular', () => fetcher('/api/randevular'), { revalidate: false }),
         ])
         
         const loadTime = Date.now() - startTime
