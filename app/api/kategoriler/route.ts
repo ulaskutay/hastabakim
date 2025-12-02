@@ -5,14 +5,24 @@ export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
+    console.log('Kategoriler yükleniyor...')
     const kategoriler = await prisma.kategori.findMany({
       orderBy: { createdAt: 'desc' },
     })
+    console.log(`${kategoriler.length} kategori bulundu`)
     return NextResponse.json(kategoriler)
   } catch (error: any) {
     console.error('Kategoriler yüklenirken hata:', error)
+    console.error('Hata detayları:', {
+      message: error.message,
+      code: error.code,
+      meta: error.meta,
+    })
     return NextResponse.json(
-      { error: 'Kategoriler yüklenirken hata oluştu: ' + error.message },
+      { 
+        error: 'Kategoriler yüklenirken hata oluştu: ' + error.message,
+        details: error.code || error.meta || null,
+      },
       { status: 500 }
     )
   }

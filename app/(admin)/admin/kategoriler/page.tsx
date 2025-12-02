@@ -29,15 +29,21 @@ export default function KategorilerPage() {
   const loadKategoriler = async () => {
     try {
       setLoading(true)
+      console.log('Kategoriler yükleniyor...')
       const response = await fetch('/api/kategoriler')
+      
       if (response.ok) {
         const data = await response.json()
-        setKategoriler(data)
+        console.log('Kategoriler yüklendi:', data)
+        setKategoriler(data || [])
       } else {
-        console.error('Kategoriler yüklenemedi')
+        const errorData = await response.json().catch(() => ({ error: 'Bilinmeyen hata' }))
+        console.error('Kategoriler yüklenemedi:', errorData)
+        alert('Kategoriler yüklenemedi: ' + (errorData.error || 'Bilinmeyen hata'))
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Hata:', error)
+      alert('Kategoriler yüklenirken bir hata oluştu: ' + error.message)
     } finally {
       setLoading(false)
     }
@@ -143,6 +149,29 @@ export default function KategorilerPage() {
       {loading ? (
         <div className="text-center py-12">
           <p className="text-gray-600">Yükleniyor...</p>
+        </div>
+      ) : kategoriler.length === 0 ? (
+        <div className="text-center py-12">
+          <div className="bg-gray-100 rounded-xl p-8 max-w-md mx-auto">
+            <FiTag className="text-4xl text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Henüz kategori yok</h3>
+            <p className="text-gray-600 mb-4">İlk kategorinizi ekleyerek başlayın</p>
+            <button
+              onClick={() => {
+                setEditingKategori(null)
+                setFormData({
+                  ad: '',
+                  aciklama: '',
+                  renk: '#3B82F6',
+                })
+                setIsModalOpen(true)
+              }}
+              className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition inline-flex items-center space-x-2"
+            >
+              <FiPlus />
+              <span>İlk Kategoriyi Ekle</span>
+            </button>
+          </div>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
