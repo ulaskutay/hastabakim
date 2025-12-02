@@ -3,11 +3,12 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
+    const { id } = await Promise.resolve(params)
     const kategori = await prisma.kategori.findUnique({
-      where: { id: params.id },
+      where: { id },
     })
 
     if (!kategori) {
@@ -29,14 +30,15 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
+    const { id } = await Promise.resolve(params)
     const body = await request.json()
     const { ad, aciklama, renk } = body
 
     const kategori = await prisma.kategori.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         ...(ad && { ad }),
         ...(aciklama !== undefined && { aciklama }),
@@ -56,11 +58,12 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
+    const { id } = await Promise.resolve(params)
     await prisma.kategori.delete({
-      where: { id: params.id },
+      where: { id },
     })
 
     return NextResponse.json({ message: 'Kategori silindi.' })

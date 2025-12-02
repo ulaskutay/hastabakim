@@ -3,11 +3,12 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
+    const { id } = await Promise.resolve(params)
     const randevu = await prisma.randevu.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         hasta: {
           include: {
@@ -51,9 +52,10 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
+    const { id } = await Promise.resolve(params)
     const body = await request.json()
     const { hastaId, personelId, tarih, saat, durum, notlar } = body
 
@@ -72,7 +74,7 @@ export async function PUT(
     if (notlar !== undefined) updateData.notlar = notlar || null
 
     const randevu = await prisma.randevu.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
       include: {
         hasta: {
@@ -110,11 +112,12 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
+    const { id } = await Promise.resolve(params)
     await prisma.randevu.delete({
-      where: { id: params.id },
+      where: { id },
     })
 
     return NextResponse.json({ message: 'Randevu silindi.' })
