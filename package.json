@@ -10,11 +10,11 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
-    "@prisma/client": "^7.0.1",
+    "@prisma/client": "^6.1.0",
     "@types/nodemailer": "^7.0.4",
     "next": "14.0.4",
     "nodemailer": "^7.0.11",
-    "prisma": "^7.0.1",
+    "prisma": "^6.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-icons": "^4.12.0"

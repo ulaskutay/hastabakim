@@ -6,8 +6,16 @@ const nextConfig = {
       bodySizeLimit: '2mb',
     },
   },
-  // API route'ları için özel ayarlar
-  output: 'standalone',
+  // API route'ları build sırasında analiz edilmesin
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals = config.externals || []
+      config.externals.push({
+        '@prisma/client': '@prisma/client',
+      })
+    }
+    return config
+  },
 }
 
 module.exports = nextConfig
