@@ -78,11 +78,25 @@ export default function PersonelPage() {
       })
 
       if (response.ok) {
-        // SWR cache'ini ve localStorage'ı yenile
+        const newPersonel = await response.json()
+        
+        // Optimistic update - hemen UI'yi güncelle
+        mutate('/api/personel', (current: Personel[] = []) => {
+          if (editingPersonel) {
+            // Güncelleme
+            return current.map(p => p.id === editingPersonel.id ? newPersonel : p)
+          } else {
+            // Yeni ekleme
+            return [newPersonel, ...current]
+          }
+        }, false) // revalidate: false = hemen güncelle, arka planda fresh data çekme
+        
+        // Arka planda fresh data çek ve güncelle
         mutate('/api/personel', async () => {
           const data = await swrFetcher('/api/personel')
           return data
         })
+        
         setIsModalOpen(false)
     setEditingPersonel(null)
     setFormData({
@@ -131,7 +145,12 @@ export default function PersonelPage() {
       })
 
       if (response.ok) {
-        // SWR cache'ini ve localStorage'ı yenile
+        // Optimistic update - hemen UI'den kaldır
+        mutate('/api/personel', (current: Personel[] = []) => {
+          return current.filter(p => p.id !== id)
+        }, false) // revalidate: false = hemen güncelle
+        
+        // Arka planda fresh data çek ve güncelle
         mutate('/api/personel', async () => {
           const data = await swrFetcher('/api/personel')
           return data
