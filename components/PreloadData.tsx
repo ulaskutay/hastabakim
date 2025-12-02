@@ -14,9 +14,10 @@ const fetcher = async (url: string) => {
   return response.json()
 }
 
-export default function PreloadData() {
+export default function PreloadData({ onLoadingChange }: { onLoadingChange?: (loading: boolean) => void }) {
   const { mutate } = useSWRConfig()
   const [preloadStarted, setPreloadStarted] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     if (preloadStarted) return
@@ -27,6 +28,8 @@ export default function PreloadData() {
     const preloadAllData = async () => {
       const startTime = Date.now()
       console.log('🚀 Tüm veriler pre-load başladı...')
+      setIsLoading(true)
+      onLoadingChange?.(true)
       
       try {
         const endpoints = [
@@ -54,6 +57,7 @@ export default function PreloadData() {
                 const data = await fetcher(url)
                 // SWR cache'ine ekle
                 mutate(url, data, { revalidate: false })
+                setCache(url, data)
                 console.log(`🌐 ${url} API'den yüklendi ve cache'lendi`)
               }
             } catch (error) {
@@ -67,11 +71,14 @@ export default function PreloadData() {
         console.log('💾 Artık tüm sayfalar anında açılacak!')
       } catch (error) {
         console.error('Pre-load hatası:', error)
+      } finally {
+        setIsLoading(false)
+        onLoadingChange?.(false)
       }
     }
     
     preloadAllData()
-  }, [preloadStarted, mutate])
+  }, [preloadStarted, mutate, onLoadingChange])
 
   return null // Bu component görünmez
 }

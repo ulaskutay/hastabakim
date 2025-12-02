@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import { FiHome, FiUsers, FiCalendar, FiUser, FiLogOut, FiSettings, FiTag, FiMail } from 'react-icons/fi'
 import { SWRConfig } from 'swr'
 import PreloadData from '@/components/PreloadData'
+import AdminPreloader from '@/components/AdminPreloader'
 
 // SWR fetcher fonksiyonu
 const fetcher = async (url: string) => {
@@ -24,6 +25,7 @@ export default function AdminLayout({
 }) {
   const pathname = usePathname()
   const [primaryColor, setPrimaryColor] = useState('#0ea5e9')
+  const [isDataLoading, setIsDataLoading] = useState(true)
 
   useEffect(() => {
     const stored = localStorage.getItem('tasarimAyarlari')
@@ -96,8 +98,9 @@ export default function AdminLayout({
 
         {/* Main Content */}
         <main className="flex-1 ml-64 p-8">
-          <PreloadData />
-          {children}
+          <PreloadData onLoadingChange={setIsDataLoading} />
+          {isDataLoading && <AdminPreloader />}
+          {!isDataLoading && children}
         </main>
       </div>
     </div>
