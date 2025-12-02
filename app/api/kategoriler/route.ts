@@ -7,8 +7,16 @@ export async function GET() {
   try {
     const startTime = Date.now()
     
-    // Prisma otomatik olarak bağlanır, $connect() gerekmez
+    // Sadece gerekli alanları seç - daha hızlı
     const kategoriler = await prisma.kategori.findMany({
+      select: {
+        id: true,
+        ad: true,
+        aciklama: true,
+        renk: true,
+        createdAt: true,
+        updatedAt: true,
+      },
       orderBy: { createdAt: 'desc' },
     })
     
