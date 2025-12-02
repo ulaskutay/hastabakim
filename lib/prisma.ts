@@ -14,19 +14,15 @@ function createPrismaClient(): PrismaClient {
   let databaseUrl = process.env.DATABASE_URL
   
   // Connection pool parametrelerini ekle (eğer yoksa)
-  if (!databaseUrl.includes('?') && !databaseUrl.includes('connection_limit')) {
-    // Eğer pooling URL ise pgbouncer parametresini koru, değilse ekle
-    const separator = databaseUrl.includes('pgbouncer=true') ? '&' : '?'
-    databaseUrl = `${databaseUrl}${separator}connection_limit=10&pool_timeout=10`
+  // Supabase Connection Pooling için optimize edilmiş ayarlar
+  if (!databaseUrl.includes('connection_limit')) {
+    const separator = databaseUrl.includes('?') ? '&' : '?'
+    // Connection pool ayarları - Vercel/serverless için optimize
+    databaseUrl = `${databaseUrl}${separator}connection_limit=5&pool_timeout=5&connect_timeout=5`
   }
 
   return new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
-    datasources: {
-      db: {
-        url: databaseUrl,
-      },
-    },
   })
 }
 
