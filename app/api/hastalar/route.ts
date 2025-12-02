@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
+    const startTime = Date.now()
     const searchParams = request.nextUrl.searchParams
     const search = searchParams.get('search')
 
@@ -22,10 +23,19 @@ export async function GET(request: NextRequest) {
     const hastalar = await prisma.hasta.findMany({
       where,
       include: {
-        kategori: true,
+        kategori: {
+          select: {
+            id: true,
+            ad: true,
+            renk: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     })
+
+    const queryTime = Date.now() - startTime
+    console.log(`Hastalar sorgusu ${queryTime}ms sürdü, ${hastalar.length} hasta bulundu`)
 
     return NextResponse.json(hastalar)
   } catch (error: any) {

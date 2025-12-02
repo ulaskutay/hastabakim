@@ -1,7 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import useSWR, { mutate } from 'swr'
 import { FiPlus, FiEdit, FiTrash2, FiSearch } from 'react-icons/fi'
+import { getCache } from '@/lib/cache'
+import { swrFetcher } from '@/lib/swr-fetcher'
 
 interface Hasta {
   id: string
@@ -20,12 +23,49 @@ interface Hasta {
   durum: string
 }
 
+interface Kategori {
+  id: string
+  ad: string
+  renk: string
+}
+
 export default function HastalarPage() {
-  const [hastalar, setHastalar] = useState<Hasta[]>([])
-  const [kategoriler, setKategoriler] = useState<{ id: string; ad: string; renk: string }[]>([])
+  // localStorage'dan initial data al
+  const cachedHastalar = typeof window !== 'undefined' ? getCache<Hasta[]>('/api/hastalar') : null
+  const cachedKategoriler = typeof window !== 'undefined' ? getCache<Kategori[]>('/api/kategoriler') : null
+  
+  // SWR ile cache'li veri yükleme - Hastalar
+  const { data: hastalar = cachedHastalar || [], error: hastalarError, isLoading: hastalarLoading } = useSWR<Hasta[]>(
+    '/api/hastalar',
+    swrFetcher,
+    {
+      fallbackData: cachedHastalar || undefined,
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      dedupingInterval: 5000,
+      refreshInterval: 0,
+    }
+  )
+
+  // SWR ile cache'li veri yükleme - Kategoriler
+  const { data: kategorilerData = cachedKategoriler || [], error: kategorilerError } = useSWR<Kategori[]>(
+    '/api/kategoriler',
+    swrFetcher,
+    {
+      fallbackData: cachedKategoriler || undefined,
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      dedupingInterval: 5000,
+      refreshInterval: 0,
+    }
+  )
+
+  const kategoriler = kategorilerData.map((k: any) => ({ id: k.id, ad: k.ad, renk: k.renk || '#3B82F6' }))
+  
   const [searchTerm, setSearchTerm] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingHasta, setEditingHasta] = useState<Hasta | null>(null)
+  const [submitting, setSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     ad: '',
     soyad: '',
@@ -37,25 +77,7 @@ export default function HastalarPage() {
     durum: 'aktif',
   })
 
-  useEffect(() => {
-    loadKategoriler()
-    loadHastalar()
-  }, [])
-
-  const [loading, setLoading] = useState(true)
-  const [submitting, setSubmitting] = useState(false)
-
-  const loadKategoriler = async () => {
-    try {
-      const response = await fetch('/api/kategoriler')
-      if (response.ok) {
-        const data = await response.json()
-        setKategoriler(data.map((k: any) => ({ id: k.id, ad: k.ad, renk: k.renk || '#3B82F6' })))
-      }
-    } catch (error) {
-      console.error('Kategoriler yüklenirken hata:', error)
-    }
-  }
+  const loading = hastalarLoading
 
   const getKategoriRenk = (kategoriId: string) => {
     const kategori = kategoriler.find((k) => k.id === kategoriId)
@@ -65,21 +87,6 @@ export default function HastalarPage() {
   const getKategoriAd = (kategoriId: string) => {
     const kategori = kategoriler.find((k) => k.id === kategoriId)
     return kategori?.ad || 'Kategori Yok'
-  }
-
-  const loadHastalar = async () => {
-    try {
-      setLoading(true)
-      const response = await fetch('/api/hastalar')
-      if (response.ok) {
-        const data = await response.json()
-        setHastalar(data)
-      }
-    } catch (error) {
-      console.error('Hastalar yüklenirken hata:', error)
-    } finally {
-      setLoading(false)
-    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -96,11 +103,11 @@ export default function HastalarPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-      ad: formData.ad,
-      soyad: formData.soyad,
-      telefon: formData.telefon,
+          ad: formData.ad,
+          soyad: formData.soyad,
+          telefon: formData.telefon,
           email: formData.email || null,
-      yas: parseInt(formData.yas),
+          yas: parseInt(formData.yas),
           adres: formData.adres || null,
           kategoriId: formData.kategori,
           durum: formData.durum || 'aktif',
@@ -108,19 +115,37 @@ export default function HastalarPage() {
       })
 
       if (response.ok) {
-        await loadHastalar()
-    setIsModalOpen(false)
-    setEditingHasta(null)
-    setFormData({
-      ad: '',
-      soyad: '',
-      telefon: '',
-      email: '',
-      yas: '',
-      adres: '',
-      kategori: '',
-      durum: 'aktif',
-    })
+        const newHasta = await response.json()
+        
+        // Optimistic update - hemen UI'yi güncelle
+        mutate('/api/hastalar', (current: Hasta[] = []) => {
+          if (editingHasta) {
+            // Güncelleme
+            return current.map(h => h.id === editingHasta.id ? newHasta : h)
+          } else {
+            // Yeni ekleme
+            return [newHasta, ...current]
+          }
+        }, false) // revalidate: false = hemen güncelle, arka planda fresh data çekme
+        
+        // Arka planda fresh data çek ve güncelle
+        mutate('/api/hastalar', async () => {
+          const data = await swrFetcher('/api/hastalar')
+          return data
+        })
+        
+        setIsModalOpen(false)
+        setEditingHasta(null)
+        setFormData({
+          ad: '',
+          soyad: '',
+          telefon: '',
+          email: '',
+          yas: '',
+          adres: '',
+          kategori: '',
+          durum: 'aktif',
+        })
       } else {
         const error = await response.json()
         alert('Hata: ' + error.error)
@@ -159,7 +184,16 @@ export default function HastalarPage() {
       })
 
       if (response.ok) {
-        await loadHastalar()
+        // Optimistic update - hemen UI'den kaldır
+        mutate('/api/hastalar', (current: Hasta[] = []) => {
+          return current.filter(h => h.id !== id)
+        }, false) // revalidate: false = hemen güncelle
+        
+        // Arka planda fresh data çek ve güncelle
+        mutate('/api/hastalar', async () => {
+          const data = await swrFetcher('/api/hastalar')
+          return data
+        })
       } else {
         const error = await response.json()
         alert('Hata: ' + error.error)
@@ -217,6 +251,17 @@ export default function HastalarPage() {
         </div>
       </div>
 
+      {(hastalarError || kategorilerError) && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+          <p className="text-red-800">Hata: {hastalarError?.message || kategorilerError?.message}</p>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="text-center py-12">
+          <p className="text-gray-600">Yükleniyor...</p>
+        </div>
+      ) : (
       <div className="bg-white rounded-xl shadow-lg overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -246,13 +291,7 @@ export default function HastalarPage() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {loading ? (
-                <tr>
-                  <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
-                    Yükleniyor...
-                  </td>
-                </tr>
-              ) : filteredHastalar.length === 0 ? (
+              {filteredHastalar.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
                     Henüz hasta kaydı bulunmamaktadır.
@@ -321,6 +360,7 @@ export default function HastalarPage() {
           </table>
         </div>
       </div>
+      )}
 
       {/* Modal */}
       {isModalOpen && (
@@ -461,4 +501,3 @@ export default function HastalarPage() {
     </div>
   )
 }
-
