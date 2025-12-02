@@ -1,0 +1,73 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Kategori {
+  id        String   @id @default(cuid())
+  ad        String
+  aciklama  String?
+  renk      String   @default("#3B82F6")
+  hastalar  Hasta[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("kategoriler")
+}
+
+model Hasta {
+  id         String    @id @default(cuid())
+  ad         String
+  soyad      String
+  telefon    String
+  email      String?
+  yas        Int
+  adres      String?
+  kategori   Kategori  @relation(fields: [kategoriId], references: [id], onDelete: Cascade)
+  kategoriId String
+  durum      String    @default("aktif")
+  randevular Randevu[]
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@map("hastalar")
+}
+
+model Personel {
+  id        String    @id @default(cuid())
+  ad        String
+  soyad     String
+  telefon   String
+  email     String?
+  pozisyon  String
+  sertifika String?
+  durum     String    @default("aktif")
+  randevular Randevu[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("personel")
+}
+
+model Randevu {
+  id        String   @id @default(cuid())
+  hasta     Hasta    @relation(fields: [hastaId], references: [id], onDelete: Cascade)
+  hastaId   String
+  personel  Personel @relation(fields: [personelId], references: [id], onDelete: Cascade)
+  personelId String
+  tarih     DateTime
+  saat      String
+  durum     String   @default("planlandi")
+  notlar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("randevular")
+}
