@@ -47,21 +47,7 @@ export async function GET(request: NextRequest) {
     })
 
     // Frontend'deki format'a uygun hale getir
-    interface FormattedRandevu {
-      id: string
-      hastaId: string
-      hastaAd: string
-      personelId: string
-      personelAd: string
-      tarih: string
-      saat: string
-      durum: string
-      notlar: string | null
-      createdAt: Date
-      updatedAt: Date
-    }
-    
-    const formattedRandevular: FormattedRandevu[] = randevular.map((r) => ({
+    const formattedRandevular = randevular.map((r: (typeof randevular)[number]) => ({
       id: r.id,
       hastaId: r.hastaId,
       hastaAd: `${r.hasta.ad} ${r.hasta.soyad}`,
