@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import useSWR, { mutate } from 'swr'
 import { FiPlus, FiEdit, FiTrash2, FiTag } from 'react-icons/fi'
 
 interface Kategori {
@@ -10,11 +11,37 @@ interface Kategori {
   renk: string
 }
 
+// SWR fetcher fonksiyonu
+const fetcher = async (url: string) => {
+  const startTime = Date.now()
+  const response = await fetch(url)
+  const loadTime = Date.now() - startTime
+  
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Bilinmeyen hata' }))
+    throw new Error(error.error || 'Veri yüklenirken hata oluştu')
+  }
+  
+  const data = await response.json()
+  console.log(`Kategoriler yüklendi (${loadTime}ms) - ${loadTime < 200 ? 'Cache' : 'API'}`)
+  return data
+}
+
 export default function KategorilerPage() {
-  const [kategoriler, setKategoriler] = useState<Kategori[]>([])
+  // SWR ile cache'li veri yükleme
+  const { data: kategoriler = [], error, isLoading } = useSWR<Kategori[]>(
+    '/api/kategoriler',
+    fetcher,
+    {
+      revalidateOnFocus: false, // Focus olduğunda yenileme
+      revalidateOnReconnect: true, // Bağlantı yenilendiğinde yenile
+      dedupingInterval: 5000, // 5 saniye içinde aynı istek tekrar yapılmaz
+      refreshInterval: 0, // Otomatik yenileme yok (manuel kontrol)
+    }
+  )
+
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingKategori, setEditingKategori] = useState<Kategori | null>(null)
-  const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     ad: '',
@@ -22,48 +49,7 @@ export default function KategorilerPage() {
     renk: '#3B82F6',
   })
 
-  useEffect(() => {
-    loadKategoriler()
-  }, [])
-
-  const loadKategoriler = async () => {
-    try {
-      setLoading(true)
-      
-      // Fetch ile timeout ekle (10 saniye)
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 10000)
-      
-      const startTime = Date.now()
-      const response = await fetch('/api/kategoriler', {
-        signal: controller.signal,
-        cache: 'no-store', // Her zaman fresh data
-      })
-      clearTimeout(timeoutId)
-      
-      const loadTime = Date.now() - startTime
-      console.log(`Kategoriler yüklendi (${loadTime}ms)`)
-      
-      if (response.ok) {
-        const data = await response.json()
-        setKategoriler(data || [])
-      } else {
-        const errorData = await response.json().catch(() => ({ error: 'Bilinmeyen hata' }))
-        console.error('Kategoriler yüklenemedi:', errorData)
-        alert('Kategoriler yüklenemedi: ' + (errorData.error || 'Bilinmeyen hata'))
-      }
-    } catch (error: any) {
-      if (error.name === 'AbortError') {
-        console.error('İstek zaman aşımına uğradı (10 saniye)')
-        alert('İstek çok uzun sürdü. Lütfen tekrar deneyin veya veritabanı bağlantısını kontrol edin.')
-      } else {
-        console.error('Hata:', error)
-        alert('Kategoriler yüklenirken bir hata oluştu: ' + error.message)
-      }
-    } finally {
-      setLoading(false)
-    }
-  }
+  const loading = isLoading
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -89,14 +75,15 @@ export default function KategorilerPage() {
       })
 
       if (response.ok) {
-        await loadKategoriler()
-    setIsModalOpen(false)
-    setEditingKategori(null)
-    setFormData({
-      ad: '',
-      aciklama: '',
-      renk: '#3B82F6',
-    })
+        // SWR cache'ini yenile
+        mutate('/api/kategoriler')
+        setIsModalOpen(false)
+        setEditingKategori(null)
+        setFormData({
+          ad: '',
+          aciklama: '',
+          renk: '#3B82F6',
+        })
       } else {
         const error = await response.json()
         alert('Hata: ' + error.error)
@@ -130,7 +117,8 @@ export default function KategorilerPage() {
       })
 
       if (response.ok) {
-        await loadKategoriler()
+        // SWR cache'ini yenile
+        mutate('/api/kategoriler')
       } else {
         const error = await response.json()
         alert('Hata: ' + error.error)
@@ -161,6 +149,12 @@ export default function KategorilerPage() {
           <span>Yeni Kategori Ekle</span>
         </button>
       </div>
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+          <p className="text-red-800">Hata: {error.message}</p>
+        </div>
+      )}
 
       {loading ? (
         <div className="text-center py-12">
