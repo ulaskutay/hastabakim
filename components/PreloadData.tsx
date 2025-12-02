@@ -14,7 +14,7 @@ const fetcher = async (url: string) => {
 }
 
 export default function PreloadData() {
-  const { mutate, cache } = useSWRConfig()
+  const { mutate } = useSWRConfig()
   const [preloadStarted, setPreloadStarted] = useState(false)
 
   useEffect(() => {
@@ -28,14 +28,26 @@ export default function PreloadData() {
       console.log('🚀 Tüm veriler pre-load başladı...')
       
       try {
-        // SWR'ın mutate fonksiyonu ile pre-fetch yap
-        // Bu veriler cache'lenecek ve sayfalar anında açılacak
-        await Promise.allSettled([
-          mutate('/api/kategoriler', () => fetcher('/api/kategoriler'), { revalidate: false }),
-          mutate('/api/hastalar', () => fetcher('/api/hastalar'), { revalidate: false }),
-          mutate('/api/personel', () => fetcher('/api/personel'), { revalidate: false }),
-          mutate('/api/randevular', () => fetcher('/api/randevular'), { revalidate: false }),
-        ])
+        // Paralel olarak tüm endpoint'leri çağır ve SWR cache'ine ekle
+        const endpoints = [
+          '/api/kategoriler',
+          '/api/hastalar',
+          '/api/personel',
+          '/api/randevular',
+        ]
+        
+        // Her endpoint'i fetch edip cache'e ekle
+        await Promise.allSettled(
+          endpoints.map(async (url) => {
+            try {
+              const data = await fetcher(url)
+              // SWR cache'ine ekle (revalidate: false = hemen cache'le)
+              mutate(url, data, { revalidate: false })
+            } catch (error) {
+              console.error(`${url} pre-load hatası:`, error)
+            }
+          })
+        )
         
         const loadTime = Date.now() - startTime
         console.log(`✅ Tüm veriler pre-load tamamlandı (${loadTime}ms)`)
