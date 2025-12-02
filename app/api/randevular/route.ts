@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 
 export async function GET(request: NextRequest) {
   try {
@@ -47,7 +48,18 @@ export async function GET(request: NextRequest) {
     })
 
     // Frontend'deki format'a uygun hale getir
-    const formattedRandevular = randevular.map((r) => ({
+    type RandevuWithRelations = Prisma.RandevuGetPayload<{
+      include: {
+        hasta: {
+          include: {
+            kategori: true
+          }
+        }
+        personel: true
+      }
+    }>
+    
+    const formattedRandevular = randevular.map((r: RandevuWithRelations) => ({
       id: r.id,
       hastaId: r.hastaId,
       hastaAd: `${r.hasta.ad} ${r.hasta.soyad}`,
