@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { FiHome, FiUsers, FiCalendar, FiUser, FiLogOut, FiSettings, FiTag, FiMail } from 'react-icons/fi'
 import { SWRConfig } from 'swr'
+import PreloadData from '@/components/PreloadData'
 
 // SWR fetcher fonksiyonu
 const fetcher = async (url: string) => {
@@ -23,7 +24,6 @@ export default function AdminLayout({
 }) {
   const pathname = usePathname()
   const [primaryColor, setPrimaryColor] = useState('#0ea5e9')
-  const [preloadStarted, setPreloadStarted] = useState(false)
 
   useEffect(() => {
     const stored = localStorage.getItem('tasarimAyarlari')
@@ -32,37 +32,6 @@ export default function AdminLayout({
       setPrimaryColor(parsed.primaryColor || '#0ea5e9')
     }
   }, [])
-
-  // Tüm verileri pre-load yap (ilk açılışta bir kere)
-  useEffect(() => {
-    if (preloadStarted) return
-    
-    setPreloadStarted(true)
-    
-    // Tüm verileri paralel olarak pre-load yap
-    const preloadData = async () => {
-      const startTime = Date.now()
-      console.log('🚀 Tüm veriler pre-load başladı...')
-      
-      try {
-        // Paralel olarak tüm endpoint'leri çağır
-        await Promise.allSettled([
-          fetch('/api/kategoriler').then(r => r.json()),
-          fetch('/api/hastalar').then(r => r.json()),
-          fetch('/api/personel').then(r => r.json()),
-          fetch('/api/randevular').then(r => r.json()),
-        ])
-        
-        const loadTime = Date.now() - startTime
-        console.log(`✅ Tüm veriler pre-load tamamlandı (${loadTime}ms)`)
-        console.log('💾 Artık tüm sayfalar anında açılacak!')
-      } catch (error) {
-        console.error('Pre-load hatası:', error)
-      }
-    }
-    
-    preloadData()
-  }, [preloadStarted])
 
   const menuItems = [
     { href: '/admin', label: 'Dashboard', icon: FiHome },
@@ -127,6 +96,7 @@ export default function AdminLayout({
 
         {/* Main Content */}
         <main className="flex-1 ml-64 p-8">
+          <PreloadData />
           {children}
         </main>
       </div>
