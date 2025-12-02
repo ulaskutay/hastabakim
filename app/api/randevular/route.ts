@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
+    const startTime = Date.now()
     const searchParams = request.nextUrl.searchParams
     const hastaId = searchParams.get('hastaId')
     const personelId = searchParams.get('personelId')
@@ -36,17 +37,35 @@ export async function GET(request: NextRequest) {
       where,
       include: {
         hasta: {
-          include: {
-            kategori: true,
+          select: {
+            id: true,
+            ad: true,
+            soyad: true,
+            kategori: {
+              select: {
+                id: true,
+                ad: true,
+                renk: true,
+              },
+            },
           },
         },
-        personel: true,
+        personel: {
+          select: {
+            id: true,
+            ad: true,
+            soyad: true,
+          },
+        },
       },
       orderBy: [
         { tarih: 'asc' },
         { saat: 'asc' },
       ],
     })
+
+    const queryTime = Date.now() - startTime
+    console.log(`Randevular sorgusu ${queryTime}ms sürdü, ${randevular.length} randevu bulundu`)
 
     // Frontend'deki format'a uygun hale getir
     const formattedRandevular = randevular.map((r: {
