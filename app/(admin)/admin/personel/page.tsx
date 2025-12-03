@@ -163,7 +163,7 @@ export default function PersonelPage() {
     }
   }
 
-  const filteredPersonel = personel.filter(
+  const filteredPersonel = (personel || []).filter(
     (p) =>
       p.ad.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.soyad.toLowerCase().includes(searchTerm.toLowerCase()) ||

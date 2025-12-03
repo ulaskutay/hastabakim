@@ -65,7 +65,7 @@ export default function KategorilerPage() {
       if (response.ok) {
         // SWR cache'ini ve localStorage'ı yenile
         mutate('/api/kategoriler', async () => {
-          const data = await fetcher('/api/kategoriler')
+          const data = await swrFetcher('/api/kategoriler')
           return data
         })
     setIsModalOpen(false)
@@ -110,7 +110,7 @@ export default function KategorilerPage() {
       if (response.ok) {
         // SWR cache'ini ve localStorage'ı yenile
         mutate('/api/kategoriler', async () => {
-          const data = await fetcher('/api/kategoriler')
+          const data = await swrFetcher('/api/kategoriler')
           return data
         })
       } else {

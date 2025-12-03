@@ -33,7 +33,7 @@ export default function PreloadData({ onLoadingChange }: { onLoadingChange?: (lo
       const frontendCriticalEndpoints = ['/api/tasarim', '/api/hizmetler']
       
       // Tüm kritik endpoint'leri birleştir (tekrarları kaldır)
-      const allCriticalEndpoints = [...new Set([...adminCriticalEndpoints, ...frontendCriticalEndpoints])]
+      const allCriticalEndpoints = Array.from(new Set([...adminCriticalEndpoints, ...frontendCriticalEndpoints]))
       
       // Cache kontrolü - tüm veriler cache'de var mı?
       const allCached = allCriticalEndpoints.every(url => getCache(url) !== null)
