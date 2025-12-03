@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import useSWR from 'swr'
 import * as Icons from 'react-icons/fi'
-import { getCache } from '@/lib/cache'
+import { swrFetcher } from '@/lib/swr-fetcher'
 
 interface Hizmet {
   id: string
@@ -11,29 +11,6 @@ interface Hizmet {
   aciklama: string
   ikon: string
   sira: number
-}
-
-// SWR fetcher fonksiyonu
-const fetcher = async (url: string) => {
-  try {
-    const cached = getCache(url)
-    
-    if (cached) {
-      return Array.isArray(cached) ? cached : []
-    }
-    
-    const response = await fetch(url)
-    if (!response.ok) {
-      console.warn('Hizmetler yüklenirken hata, boş array döndürülüyor')
-      return []
-    }
-    
-    const data = await response.json()
-    return Array.isArray(data) ? data : []
-  } catch (error) {
-    console.error('Hizmetler yüklenirken hata:', error)
-    return []
-  }
 }
 
 // İkon bileşenini al
@@ -45,16 +22,16 @@ const getIconComponent = (iconName: string) => {
 export default function Services() {
   const [primaryColor, setPrimaryColor] = useState('#0ea5e9')
   
-  const cachedData = typeof window !== 'undefined' ? getCache<Hizmet[]>('/api/hizmetler') : null
-  const safeCachedData = Array.isArray(cachedData) ? cachedData : []
-  
-  const { data: hizmetler = safeCachedData, error, isLoading } = useSWR<Hizmet[]>(
+  // Her zaman fresh data çek
+  const { data: hizmetler = [], error, isLoading } = useSWR<Hizmet[]>(
     '/api/hizmetler',
-    fetcher,
+    swrFetcher,
     {
-      revalidateOnFocus: false,
+      revalidateOnMount: true,
+      revalidateOnFocus: true,
       revalidateOnReconnect: true,
-      fallbackData: safeCachedData.length > 0 ? safeCachedData : undefined,
+      dedupingInterval: 0,
+      refreshInterval: 0,
       onError: (err) => {
         console.error('SWR hata:', err)
       },

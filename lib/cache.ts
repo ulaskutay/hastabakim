@@ -1,7 +1,8 @@
 // localStorage cache utility
+// Cache sadece hızlandırma için kullanılır, her zaman fresh data önceliklidir
 
 const CACHE_PREFIX = 'swr_cache_'
-const CACHE_TTL = 5 * 60 * 1000 // 5 dakika
+const CACHE_TTL = 1 * 60 * 1000 // 1 dakika (daha kısa TTL)
 
 export interface CacheEntry<T> {
   data: T

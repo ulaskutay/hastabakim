@@ -45,31 +45,23 @@ export default function PreloadData({ onLoadingChange }: { onLoadingChange?: (lo
           '/api/hizmetler',
         ]
         
-        // Her zaman fresh data çek - cache bypass ile
+        // Her zaman fresh data çek - cache'i bypass et
         await Promise.allSettled(
           endpoints.map(async (url) => {
             try {
-              // Cache'i kontrol et ama her zaman fresh data çek
-              const cached = getCache(url)
-              if (cached) {
-                console.log(`📦 ${url} localStorage cache var, fresh data çekiliyor...`)
-                // SWR cache'ine hemen ekle (geçici olarak)
-                mutate(url, cached, { revalidate: false })
-              }
-              
-              // Her zaman fresh data çek (cache bypass ile)
+              // Direkt fresh data çek (cache'i bypass et)
               const data = await fetcher(url)
               // Fresh data'yı cache'e kaydet ve SWR'ye ekle
               setCache(url, data)
-              mutate(url, data, { revalidate: false })
-              console.log(`🌐 ${url} fresh data yüklendi ve cache'lendi`)
+              mutate(url, data, { revalidate: true })
+              console.log(`✅ ${url} fresh data yüklendi ve cache'lendi`)
             } catch (error) {
-              console.error(`${url} pre-load hatası:`, error)
-              // Hata durumunda cache'i kullan
+              console.error(`❌ ${url} pre-load hatası:`, error)
+              // Hata durumunda cache'i kontrol et (sadece fallback)
               const cached = getCache(url)
               if (cached) {
-                mutate(url, cached, { revalidate: false })
-                console.log(`⚠️ ${url} hata nedeniyle cache kullanılıyor`)
+                mutate(url, cached, { revalidate: true })
+                console.log(`⚠️ ${url} hata nedeniyle cache kullanılıyor (fallback)`)
               }
             }
           })
