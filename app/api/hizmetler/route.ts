@@ -33,6 +33,12 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error('Hizmetler yüklenirken hata:', error)
     
+    // Eğer tablo yoksa (migration çalıştırılmamışsa) boş array döndür
+    if (error.code === 'P2021' || error.code === 'P2025' || error.message?.includes('does not exist')) {
+      console.log('Hizmetler tablosu henüz oluşturulmamış, boş array döndürülüyor')
+      return NextResponse.json([])
+    }
+    
     let errorMessage = 'Hizmetler yüklenirken hata oluştu: ' + error.message
     
     if (error.code === 'P1001') {
@@ -43,13 +49,9 @@ export async function GET(request: NextRequest) {
       errorMessage = 'DATABASE_URL environment variable tanımlı değil.'
     }
     
-    return NextResponse.json(
-      { 
-        error: errorMessage,
-        code: error.code || null,
-      },
-      { status: 500 }
-    )
+    // Hata durumunda da boş array döndür ki sayfa çökmesin
+    console.warn('Hizmetler yüklenirken hata oluştu, boş array döndürülüyor:', errorMessage)
+    return NextResponse.json([])
   }
 }
 

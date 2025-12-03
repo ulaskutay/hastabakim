@@ -43,29 +43,38 @@ const fetcher = async (url: string) => {
   fetch(url)
     .then(r => r.json())
     .then(data => {
-      setCache(url, data)
-      mutate(url, data, { revalidate: false })
+      // Array kontrolü yap
+      const safeData = Array.isArray(data) ? data : []
+      setCache(url, safeData)
+      mutate(url, safeData, { revalidate: false })
     })
     .catch(() => {})
   
   if (cached) {
     const loadTime = Date.now() - startTime
     console.log(`Hizmetler yüklendi (${loadTime}ms) - 📦 Cache (arka planda güncelleniyor)`)
-    return cached
+    return Array.isArray(cached) ? cached : []
   }
   
-  const response = await fetch(url)
-  const loadTime = Date.now() - startTime
-  
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Bilinmeyen hata' }))
-    throw new Error(error.error || 'Veri yüklenirken hata oluştu')
+  try {
+    const response = await fetch(url)
+    const loadTime = Date.now() - startTime
+    
+    if (!response.ok) {
+      console.warn('Hizmetler yüklenirken hata, boş array döndürülüyor')
+      return []
+    }
+    
+    const data = await response.json()
+    // Array kontrolü yap
+    const safeData = Array.isArray(data) ? data : []
+    setCache(url, safeData)
+    console.log(`Hizmetler yüklendi (${loadTime}ms) - 🌐 API`)
+    return safeData
+  } catch (error) {
+    console.error('Hizmetler yüklenirken hata:', error)
+    return []
   }
-  
-  const data = await response.json()
-  setCache(url, data)
-  console.log(`Hizmetler yüklendi (${loadTime}ms) - 🌐 API`)
-  return data
 }
 
 // İkon bileşenini al
@@ -76,18 +85,25 @@ const getIconComponent = (iconName: string) => {
 
 export default function HizmetlerPage() {
   const cachedData = typeof window !== 'undefined' ? getCache<Hizmet[]>('/api/hizmetler?all=true') : null
+  const safeCachedData = Array.isArray(cachedData) ? cachedData : []
   
-  const { data: hizmetler = cachedData || [], error, isLoading } = useSWR<Hizmet[]>(
+  const { data: hizmetler = safeCachedData, error, isLoading } = useSWR<Hizmet[]>(
     '/api/hizmetler?all=true',
     fetcher,
     {
-      fallbackData: cachedData || undefined,
+      fallbackData: safeCachedData.length > 0 ? safeCachedData : undefined,
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
       dedupingInterval: 5000,
       refreshInterval: 0,
+      onError: (err) => {
+        console.error('SWR hata:', err)
+      },
     }
   )
+  
+  // Güvenlik kontrolü - her zaman array olduğundan emin ol
+  const safeHizmetler = Array.isArray(hizmetler) ? hizmetler : []
 
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingHizmet, setEditingHizmet] = useState<Hizmet | null>(null)
@@ -187,19 +203,19 @@ export default function HizmetlerPage() {
   }
 
   const handleSiraChange = async (hizmet: Hizmet, direction: 'up' | 'down') => {
-    const currentIndex = hizmetler.findIndex(h => h.id === hizmet.id)
+    const currentIndex = safeHizmetler.findIndex(h => h.id === hizmet.id)
     if (currentIndex === -1) return
 
     let targetIndex: number
     if (direction === 'up' && currentIndex > 0) {
       targetIndex = currentIndex - 1
-    } else if (direction === 'down' && currentIndex < hizmetler.length - 1) {
+    } else if (direction === 'down' && currentIndex < safeHizmetler.length - 1) {
       targetIndex = currentIndex + 1
     } else {
       return
     }
 
-    const targetHizmet = hizmetler[targetIndex]
+    const targetHizmet = safeHizmetler[targetIndex]
     const newSira = targetHizmet.sira
     const oldSira = hizmet.sira
 
@@ -235,12 +251,12 @@ export default function HizmetlerPage() {
         <button
           onClick={() => {
             setEditingHizmet(null)
-            setFormData({
-              baslik: '',
-              aciklama: '',
-              ikon: 'FiUser',
-              sira: hizmetler.length > 0 ? Math.max(...hizmetler.map(h => h.sira)) + 1 : 1,
-            })
+              setFormData({
+                baslik: '',
+                aciklama: '',
+                ikon: 'FiUser',
+                sira: safeHizmetler.length > 0 ? Math.max(...safeHizmetler.map(h => h.sira)) + 1 : 1,
+              })
             setIsModalOpen(true)
           }}
           className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition flex items-center space-x-2"
@@ -286,7 +302,7 @@ export default function HizmetlerPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {hizmetler.map((hizmet) => {
+          {safeHizmetler.map((hizmet) => {
             const Icon = getIconComponent(hizmet.ikon)
             return (
               <div
@@ -298,7 +314,7 @@ export default function HizmetlerPage() {
                     <div className="flex flex-col items-center space-y-1">
                       <button
                         onClick={() => handleSiraChange(hizmet, 'up')}
-                        disabled={hizmetler.findIndex(h => h.id === hizmet.id) === 0}
+                        disabled={safeHizmetler.findIndex(h => h.id === hizmet.id) === 0}
                         className="p-1 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
                       >
                         <FiArrowUp />
@@ -306,7 +322,7 @@ export default function HizmetlerPage() {
                       <span className="text-sm text-gray-500 font-medium">{hizmet.sira}</span>
                       <button
                         onClick={() => handleSiraChange(hizmet, 'down')}
-                        disabled={hizmetler.findIndex(h => h.id === hizmet.id) === hizmetler.length - 1}
+                        disabled={safeHizmetler.findIndex(h => h.id === hizmet.id) === safeHizmetler.length - 1}
                         className="p-1 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
                       >
                         <FiArrowDown />

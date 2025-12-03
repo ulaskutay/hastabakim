@@ -15,19 +15,25 @@ interface Hizmet {
 
 // SWR fetcher fonksiyonu
 const fetcher = async (url: string) => {
-  const cached = getCache(url)
-  
-  if (cached) {
-    return cached
+  try {
+    const cached = getCache(url)
+    
+    if (cached) {
+      return Array.isArray(cached) ? cached : []
+    }
+    
+    const response = await fetch(url)
+    if (!response.ok) {
+      console.warn('Hizmetler yüklenirken hata, boş array döndürülüyor')
+      return []
+    }
+    
+    const data = await response.json()
+    return Array.isArray(data) ? data : []
+  } catch (error) {
+    console.error('Hizmetler yüklenirken hata:', error)
+    return []
   }
-  
-  const response = await fetch(url)
-  if (!response.ok) {
-    throw new Error('Hizmetler yüklenirken hata oluştu')
-  }
-  
-  const data = await response.json()
-  return data
 }
 
 // İkon bileşenini al
@@ -39,15 +45,24 @@ const getIconComponent = (iconName: string) => {
 export default function Services() {
   const [primaryColor, setPrimaryColor] = useState('#0ea5e9')
   
-  const { data: hizmetler = [], error, isLoading } = useSWR<Hizmet[]>(
+  const cachedData = typeof window !== 'undefined' ? getCache<Hizmet[]>('/api/hizmetler') : null
+  const safeCachedData = Array.isArray(cachedData) ? cachedData : []
+  
+  const { data: hizmetler = safeCachedData, error, isLoading } = useSWR<Hizmet[]>(
     '/api/hizmetler',
     fetcher,
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
-      fallbackData: typeof window !== 'undefined' ? getCache<Hizmet[]>('/api/hizmetler') || [] : [],
+      fallbackData: safeCachedData.length > 0 ? safeCachedData : undefined,
+      onError: (err) => {
+        console.error('SWR hata:', err)
+      },
     }
   )
+  
+  // Güvenlik kontrolü - her zaman array olduğundan emin ol
+  const safeHizmetler = Array.isArray(hizmetler) ? hizmetler : []
 
   useEffect(() => {
     const stored = localStorage.getItem('tasarimAyarlari')
@@ -69,7 +84,7 @@ export default function Services() {
     )
   }
 
-  if (error || hizmetler.length === 0) {
+  if (error || safeHizmetler.length === 0) {
     return null
   }
 
@@ -84,7 +99,7 @@ export default function Services() {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {hizmetler.map((hizmet) => {
+          {safeHizmetler.map((hizmet) => {
             const Icon = getIconComponent(hizmet.ikon)
             return (
               <div
