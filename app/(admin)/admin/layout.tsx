@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { FiHome, FiUsers, FiCalendar, FiUser, FiLogOut, FiSettings, FiTag, FiMail } from 'react-icons/fi'
+import { FiHome, FiUsers, FiCalendar, FiUser, FiLogOut, FiSettings, FiTag, FiMail, FiGrid } from 'react-icons/fi'
 import { SWRConfig } from 'swr'
 import PreloadData from '@/components/PreloadData'
 import AdminPreloader from '@/components/AdminPreloader'
@@ -41,6 +41,7 @@ export default function AdminLayout({
     { href: '/admin/randevular', label: 'Randevular', icon: FiCalendar },
     { href: '/admin/personel', label: 'Personel', icon: FiUser },
     { href: '/admin/kategoriler', label: 'Kategoriler', icon: FiTag },
+    { href: '/admin/hizmetler', label: 'Hizmetler', icon: FiGrid },
     { href: '/admin/tasarim', label: 'Tasarım', icon: FiSettings },
     { href: '/admin/smtp', label: 'SMTP Yönetimi', icon: FiMail },
   ]

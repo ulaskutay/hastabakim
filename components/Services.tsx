@@ -1,43 +1,53 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { FiUser, FiHeart, FiActivity, FiHome, FiClock, FiShield } from 'react-icons/fi'
+import useSWR from 'swr'
+import * as Icons from 'react-icons/fi'
+import { getCache } from '@/lib/cache'
 
-const services = [
-  {
-    icon: FiUser,
-    title: 'Yaşlı Bakım Hizmetleri',
-    description: 'Yaşlılarımız için özenli ve profesyonel bakım hizmetleri. Günlük yaşam aktivitelerinde destek.',
-  },
-  {
-    icon: FiHeart,
-    title: 'Hasta Bakım Hizmetleri',
-    description: 'Hastalarımız için 7/24 profesyonel bakım desteği. Tıbbi gereksinimlere uygun bakım.',
-  },
-  {
-    icon: FiActivity,
-    title: 'Fizik Tedavi Desteği',
-    description: 'Uzman fizyoterapistler eşliğinde rehabilitasyon ve fizik tedavi programları.',
-  },
-  {
-    icon: FiHome,
-    title: 'Evde Bakım Hizmetleri',
-    description: 'Ev ortamında konforlu ve güvenli bakım hizmetleri. Kişiye özel bakım planları.',
-  },
-  {
-    icon: FiClock,
-    title: '7/24 Destek',
-    description: 'Acil durumlar için 7 gün 24 saat ulaşılabilir destek hattı.',
-  },
-  {
-    icon: FiShield,
-    title: 'Güvenilir Ekip',
-    description: 'Sertifikalı ve deneyimli bakım personeli. Düzenli eğitim ve sertifikasyon.',
-  },
-]
+interface Hizmet {
+  id: string
+  baslik: string
+  aciklama: string
+  ikon: string
+  sira: number
+}
+
+// SWR fetcher fonksiyonu
+const fetcher = async (url: string) => {
+  const cached = getCache(url)
+  
+  if (cached) {
+    return cached
+  }
+  
+  const response = await fetch(url)
+  if (!response.ok) {
+    throw new Error('Hizmetler yüklenirken hata oluştu')
+  }
+  
+  const data = await response.json()
+  return data
+}
+
+// İkon bileşenini al
+const getIconComponent = (iconName: string) => {
+  const IconComponent = (Icons as any)[iconName] || Icons.FiUser
+  return IconComponent
+}
 
 export default function Services() {
   const [primaryColor, setPrimaryColor] = useState('#0ea5e9')
+  
+  const { data: hizmetler = [], error, isLoading } = useSWR<Hizmet[]>(
+    '/api/hizmetler',
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      fallbackData: typeof window !== 'undefined' ? getCache<Hizmet[]>('/api/hizmetler') || [] : [],
+    }
+  )
 
   useEffect(() => {
     const stored = localStorage.getItem('tasarimAyarlari')
@@ -46,6 +56,22 @@ export default function Services() {
       setPrimaryColor(parsed.primaryColor)
     }
   }, [])
+
+  if (isLoading) {
+    return (
+      <section id="hizmetler" className="py-20 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <p className="text-gray-600">Hizmetler yükleniyor...</p>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  if (error || hizmetler.length === 0) {
+    return null
+  }
 
   return (
     <section id="hizmetler" className="py-20 bg-gray-50">
@@ -58,11 +84,11 @@ export default function Services() {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {services.map((service, index) => {
-            const Icon = service.icon
+          {hizmetler.map((hizmet) => {
+            const Icon = getIconComponent(hizmet.ikon)
             return (
               <div
-                key={index}
+                key={hizmet.id}
                 className="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow"
               >
                 <div
@@ -72,10 +98,10 @@ export default function Services() {
                   <Icon className="text-2xl" style={{ color: primaryColor }} />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                  {service.title}
+                  {hizmet.baslik}
                 </h3>
                 <p className="text-gray-600">
-                  {service.description}
+                  {hizmet.aciklama}
                 </p>
               </div>
             )

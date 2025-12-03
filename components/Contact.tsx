@@ -124,7 +124,12 @@ export default function Contact() {
                 </div>
                 <div>
                   <h4 className="font-semibold text-gray-900 mb-1">Telefon</h4>
-                  <p className="text-gray-600">{ayarlar.telefon}</p>
+                  <a
+                    href={`tel:${ayarlar.telefon.replace(/[^0-9+]/g, '')}`}
+                    className="text-gray-600 hover:text-gray-900 transition"
+                  >
+                    {ayarlar.telefon}
+                  </a>
                 </div>
               </div>
 
@@ -159,8 +164,20 @@ export default function Contact() {
                 </div>
                 <div>
                   <h4 className="font-semibold text-gray-900 mb-1">E-posta</h4>
-                  <p className="text-gray-600">{ayarlar.email}</p>
-                  {ayarlar.email2 && <p className="text-gray-600">{ayarlar.email2}</p>}
+                  <a
+                    href={`mailto:${ayarlar.email}`}
+                    className="text-gray-600 hover:text-gray-900 transition block"
+                  >
+                    {ayarlar.email}
+                  </a>
+                  {ayarlar.email2 && (
+                    <a
+                      href={`mailto:${ayarlar.email2}`}
+                      className="text-gray-600 hover:text-gray-900 transition block"
+                    >
+                      {ayarlar.email2}
+                    </a>
+                  )}
                 </div>
               </div>
               
@@ -173,9 +190,15 @@ export default function Contact() {
                 </div>
                 <div>
                   <h4 className="font-semibold text-gray-900 mb-1">Adres</h4>
-                  <p className="text-gray-600" style={{ whiteSpace: 'pre-line' }}>
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ayarlar.adres)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-gray-600 hover:text-gray-900 transition block"
+                    style={{ whiteSpace: 'pre-line' }}
+                  >
                     {ayarlar.adres}
-                  </p>
+                  </a>
                 </div>
               </div>
             </div>
