@@ -61,7 +61,20 @@ export default function Services() {
     )
   }
 
-  if (error || safeHizmetler.length === 0) {
+  if (error) {
+    console.error('Hizmetler yüklenirken hata:', error)
+    return (
+      <section id="hizmetler" className="py-20 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <p className="text-red-600">Hizmetler yüklenirken bir hata oluştu.</p>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  if (safeHizmetler.length === 0) {
     return null
   }
 

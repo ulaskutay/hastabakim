@@ -6,10 +6,19 @@ import { getCache, setCache } from '@/lib/cache'
 
 // Fetcher fonksiyonu - cache bypass ile fresh data çek
 const fetcher = async (url: string) => {
-  const response = await fetch(url, {
+  // URL'den query parametrelerini temizle
+  const cleanUrl = url.split('?')[0]
+  
+  // Fetch için timestamp ekle - TÜM cache'leri bypass et (browser, HTTP, Next.js, Vercel)
+  const separator = cleanUrl.includes('?') ? '&' : '?'
+  const cacheBusterUrl = `${cleanUrl}${separator}_t=${Date.now()}`
+  
+  const response = await fetch(cacheBusterUrl, {
     cache: 'no-store', // Browser cache'ini bypass et
     headers: {
-      'Cache-Control': 'no-cache',
+      'Cache-Control': 'no-cache, no-store, must-revalidate, proxy-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
     },
   })
   if (!response.ok) {
