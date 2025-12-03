@@ -37,6 +37,7 @@ export default function PreloadData({ onLoadingChange }: { onLoadingChange?: (lo
           '/api/hastalar',
           '/api/personel',
           '/api/randevular',
+          '/api/hizmetler',
         ]
         
         // Önce localStorage'dan cache kontrol et, yoksa API'den çek
