@@ -4,9 +4,14 @@ import { useEffect, useState } from 'react'
 import { useSWRConfig } from 'swr'
 import { getCache, setCache } from '@/lib/cache'
 
-// Fetcher fonksiyonu
+// Fetcher fonksiyonu - cache bypass ile fresh data çek
 const fetcher = async (url: string) => {
-  const response = await fetch(url)
+  const response = await fetch(url, {
+    cache: 'no-store', // Browser cache'ini bypass et
+    headers: {
+      'Cache-Control': 'no-cache',
+    },
+  })
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: 'Bilinmeyen hata' }))
     throw new Error(error.error || 'Veri yüklenirken hata oluştu')
@@ -52,7 +57,14 @@ export default function PreloadData({ onLoadingChange }: { onLoadingChange?: (lo
                 mutate(url, cached, { revalidate: false })
                 
                 // Arka planda fresh data çek ve güncelle
-                fetcher(url).catch(() => {})
+                fetcher(url)
+                  .then((data) => {
+                    // Fresh data'yı cache'e kaydet
+                    setCache(url, data)
+                    mutate(url, data, { revalidate: false })
+                    console.log(`🔄 ${url} arka planda güncellendi`)
+                  })
+                  .catch(() => {})
               } else {
                 // Cache yoksa API'den çek
                 const data = await fetcher(url)
