@@ -23,7 +23,13 @@ export async function GET() {
     const queryTime = Date.now() - startTime
     console.log(`Kategoriler sorgusu ${queryTime}ms sürdü, ${kategoriler.length} kategori bulundu`)
     
-    return NextResponse.json(kategoriler)
+    return NextResponse.json(kategoriler, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
+    })
   } catch (error: any) {
     console.error('Kategoriler yüklenirken hata:', error)
     

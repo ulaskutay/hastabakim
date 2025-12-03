@@ -20,7 +20,12 @@ const fetcher = async (url: string) => {
   const cached = getCache(url)
   
   // Arka planda fresh data çek (cache olsa da olmasa da)
-  fetch(url)
+  fetch(url, {
+    cache: 'no-store',
+    headers: {
+      'Cache-Control': 'no-cache',
+    },
+  })
     .then(r => r.json())
     .then(data => {
       setCache(url, data)
@@ -36,7 +41,12 @@ const fetcher = async (url: string) => {
   }
   
   // Cache yoksa API'den çek
-  const response = await fetch(url)
+  const response = await fetch(url, {
+    cache: 'no-store',
+    headers: {
+      'Cache-Control': 'no-cache',
+    },
+  })
   const loadTime = Date.now() - startTime
   
   if (!response.ok) {

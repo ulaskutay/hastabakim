@@ -29,7 +29,13 @@ export async function GET(request: NextRequest) {
     const queryTime = Date.now() - startTime
     console.log(`Hizmetler sorgusu ${queryTime}ms sürdü, ${hizmetler.length} hizmet bulundu`)
     
-    return NextResponse.json(hizmetler)
+    return NextResponse.json(hizmetler, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
+    })
   } catch (error: any) {
     console.error('Hizmetler yüklenirken hata:', error)
     

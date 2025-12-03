@@ -37,7 +37,13 @@ export async function GET(request: NextRequest) {
     const queryTime = Date.now() - startTime
     console.log(`Hastalar sorgusu ${queryTime}ms sürdü, ${hastalar.length} hasta bulundu`)
 
-    return NextResponse.json(hastalar)
+    return NextResponse.json(hastalar, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
+    })
   } catch (error: any) {
     console.error('Hastalar yüklenirken hata:', error)
     return NextResponse.json(

@@ -94,7 +94,13 @@ export async function GET(request: NextRequest) {
       updatedAt: r.updatedAt,
     }))
 
-    return NextResponse.json(formattedRandevular)
+    return NextResponse.json(formattedRandevular, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
+    })
   } catch (error: any) {
     console.error('Randevular yüklenirken hata:', error)
     return NextResponse.json(

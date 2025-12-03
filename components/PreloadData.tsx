@@ -45,36 +45,32 @@ export default function PreloadData({ onLoadingChange }: { onLoadingChange?: (lo
           '/api/hizmetler',
         ]
         
-        // Önce localStorage'dan cache kontrol et, yoksa API'den çek
+        // Her zaman fresh data çek - cache bypass ile
         await Promise.allSettled(
           endpoints.map(async (url) => {
             try {
-              // Önce localStorage'dan kontrol et
+              // Cache'i kontrol et ama her zaman fresh data çek
               const cached = getCache(url)
               if (cached) {
-                console.log(`📦 ${url} localStorage cache'den yüklendi`)
-                // SWR cache'ine hemen ekle (revalidate: false = yeniden fetch yapma)
+                console.log(`📦 ${url} localStorage cache var, fresh data çekiliyor...`)
+                // SWR cache'ine hemen ekle (geçici olarak)
                 mutate(url, cached, { revalidate: false })
-                
-                // Arka planda fresh data çek ve güncelle
-                fetcher(url)
-                  .then((data) => {
-                    // Fresh data'yı cache'e kaydet
-                    setCache(url, data)
-                    mutate(url, data, { revalidate: false })
-                    console.log(`🔄 ${url} arka planda güncellendi`)
-                  })
-                  .catch(() => {})
-              } else {
-                // Cache yoksa API'den çek
-                const data = await fetcher(url)
-                // SWR cache'ine ekle
-                mutate(url, data, { revalidate: false })
-                setCache(url, data)
-                console.log(`🌐 ${url} API'den yüklendi ve cache'lendi`)
               }
+              
+              // Her zaman fresh data çek (cache bypass ile)
+              const data = await fetcher(url)
+              // Fresh data'yı cache'e kaydet ve SWR'ye ekle
+              setCache(url, data)
+              mutate(url, data, { revalidate: false })
+              console.log(`🌐 ${url} fresh data yüklendi ve cache'lendi`)
             } catch (error) {
               console.error(`${url} pre-load hatası:`, error)
+              // Hata durumunda cache'i kullan
+              const cached = getCache(url)
+              if (cached) {
+                mutate(url, cached, { revalidate: false })
+                console.log(`⚠️ ${url} hata nedeniyle cache kullanılıyor`)
+              }
             }
           })
         )

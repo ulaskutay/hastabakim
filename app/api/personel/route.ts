@@ -29,7 +29,13 @@ export async function GET(request: NextRequest) {
     const queryTime = Date.now() - startTime
     console.log(`Personel sorgusu ${queryTime}ms sürdü, ${personel.length} personel bulundu`)
 
-    return NextResponse.json(personel)
+    return NextResponse.json(personel, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
+    })
   } catch (error: any) {
     console.error('Personel yüklenirken hata:', error)
     return NextResponse.json(
