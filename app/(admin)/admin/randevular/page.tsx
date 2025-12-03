@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import useSWR, { mutate } from 'swr'
 import { FiPlus, FiEdit, FiTrash2, FiCalendar } from 'react-icons/fi'
-import { getCache } from '@/lib/cache'
 import { swrFetcher } from '@/lib/swr-fetcher'
 
 interface Randevu {
@@ -31,17 +30,13 @@ interface Personel {
 }
 
 export default function RandevularPage() {
-  // localStorage'dan initial data al
-  const cachedRandevular = typeof window !== 'undefined' ? getCache<Randevu[]>('/api/randevular') : null
-  const cachedHastalar = typeof window !== 'undefined' ? getCache<Hasta[]>('/api/hastalar') : null
-  const cachedPersonel = typeof window !== 'undefined' ? getCache<Personel[]>('/api/personel') : null
-  
-  // SWR ile cache'li veri yükleme - Randevular
-  const { data: randevular = cachedRandevular || [], error: randevularError, isLoading: randevularLoading } = useSWR<Randevu[]>(
+  // PreloadData zaten veriyi yüklüyor, SWR cache'inden oku
+  // default değer YOK - eski veriyi göstermesin
+  const { data: randevular, error: randevularError, isLoading: randevularLoading } = useSWR<Randevu[]>(
     '/api/randevular',
     swrFetcher,
     {
-      fallbackData: cachedRandevular || undefined,
+      revalidateOnMount: false, // PreloadData zaten yükledi
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
       dedupingInterval: 5000,
@@ -50,11 +45,11 @@ export default function RandevularPage() {
   )
 
   // SWR ile cache'li veri yükleme - Hastalar
-  const { data: hastalarData = cachedHastalar || [], error: hastalarError } = useSWR<Hasta[]>(
+  const { data: hastalarData, error: hastalarError } = useSWR<Hasta[]>(
     '/api/hastalar',
     swrFetcher,
     {
-      fallbackData: cachedHastalar || undefined,
+      revalidateOnMount: false, // PreloadData zaten yükledi
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
       dedupingInterval: 5000,
@@ -63,11 +58,11 @@ export default function RandevularPage() {
   )
 
   // SWR ile cache'li veri yükleme - Personel
-  const { data: personelData = cachedPersonel || [], error: personelError } = useSWR<Personel[]>(
+  const { data: personelData, error: personelError } = useSWR<Personel[]>(
     '/api/personel',
     swrFetcher,
     {
-      fallbackData: cachedPersonel || undefined,
+      revalidateOnMount: false, // PreloadData zaten yükledi
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
       dedupingInterval: 5000,
@@ -75,8 +70,8 @@ export default function RandevularPage() {
     }
   )
 
-  const hastalar = hastalarData
-  const personel = personelData
+  const hastalar = hastalarData || []
+  const personel = personelData || []
 
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingRandevu, setEditingRandevu] = useState<Randevu | null>(null)
@@ -90,7 +85,8 @@ export default function RandevularPage() {
     notlar: '',
   })
 
-  const loading = randevularLoading
+  // PreloadData yüklenene kadar veya veri yoksa loading göster
+  const loading = randevularLoading || !randevular
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -231,7 +227,7 @@ export default function RandevularPage() {
     }
   }
 
-  const sortedRandevular = [...randevular].sort((a, b) => {
+  const sortedRandevular = (randevular || []).sort((a, b) => {
     const dateA = new Date(a.tarih + ' ' + a.saat).getTime()
     const dateB = new Date(b.tarih + ' ' + b.saat).getTime()
     return dateA - dateB

@@ -1,3 +1,5 @@
+'use client'
+
 import { FiAward, FiUsers, FiTarget } from 'react-icons/fi'
 
 const features = [

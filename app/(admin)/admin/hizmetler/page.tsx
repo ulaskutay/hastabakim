@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import useSWR, { mutate } from 'swr'
 import { FiPlus, FiEdit, FiTrash2, FiGrid, FiArrowUp, FiArrowDown } from 'react-icons/fi'
-import { getCache, clearCache } from '@/lib/cache'
+import { clearCache } from '@/lib/cache'
 import { swrFetcher } from '@/lib/swr-fetcher'
 import * as Icons from 'react-icons/fi'
 
@@ -43,15 +43,13 @@ const getIconComponent = (iconName: string) => {
 }
 
 export default function HizmetlerPage() {
-  // localStorage'dan initial data al (sayfa yüklenir yüklenmez göster)
-  const cachedData = typeof window !== 'undefined' ? getCache<Hizmet[]>('/api/hizmetler?all=true') : null
-  
-  // SWR ile cache'li veri yükleme
-  const { data: hizmetler = cachedData || [], error, isLoading } = useSWR<Hizmet[]>(
+  // PreloadData zaten veriyi yüklüyor, SWR cache'inden oku
+  // default değer YOK - eski veriyi göstermesin
+  const { data: hizmetler, error, isLoading } = useSWR<Hizmet[]>(
     '/api/hizmetler?all=true',
     swrFetcher,
     {
-      fallbackData: cachedData || undefined, // İlk render'da cache'den göster
+      revalidateOnMount: false, // PreloadData zaten yükledi
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
       dedupingInterval: 5000,
@@ -232,7 +230,7 @@ export default function HizmetlerPage() {
         </div>
       )}
 
-      {loading ? (
+      {loading || !hizmetler ? (
         <div className="text-center py-12">
           <p className="text-gray-600">Yükleniyor...</p>
         </div>

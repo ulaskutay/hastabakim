@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import useSWR, { mutate } from 'swr'
 import { FiPlus, FiEdit, FiTrash2, FiSearch } from 'react-icons/fi'
-import { getCache } from '@/lib/cache'
 import { swrFetcher } from '@/lib/swr-fetcher'
 
 interface Personel {
@@ -18,15 +17,13 @@ interface Personel {
 }
 
 export default function PersonelPage() {
-  // localStorage'dan initial data al (sayfa yüklenir yüklenmez göster)
-  const cachedData = typeof window !== 'undefined' ? getCache<Personel[]>('/api/personel') : null
-  
-  // SWR ile cache'li veri yükleme
-  const { data: personel = cachedData || [], error, isLoading } = useSWR<Personel[]>(
+  // PreloadData zaten veriyi yüklüyor, SWR cache'inden oku
+  // default değer YOK - eski veriyi göstermesin
+  const { data: personel, error, isLoading } = useSWR<Personel[]>(
     '/api/personel',
     swrFetcher,
     {
-      fallbackData: cachedData || undefined, // İlk render'da cache'den göster
+      revalidateOnMount: false, // PreloadData zaten yükledi
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
       dedupingInterval: 5000,
@@ -48,7 +45,8 @@ export default function PersonelPage() {
     durum: 'aktif',
   })
 
-  const loading = isLoading
+  // PreloadData yüklenene kadar veya veri yoksa loading göster
+  const loading = isLoading || !personel
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

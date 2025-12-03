@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import useSWR, { mutate } from 'swr'
 import { FiPlus, FiEdit, FiTrash2, FiSearch } from 'react-icons/fi'
-import { getCache } from '@/lib/cache'
 import { swrFetcher } from '@/lib/swr-fetcher'
 
 interface Hasta {
@@ -30,16 +29,13 @@ interface Kategori {
 }
 
 export default function HastalarPage() {
-  // localStorage'dan initial data al
-  const cachedHastalar = typeof window !== 'undefined' ? getCache<Hasta[]>('/api/hastalar') : null
-  const cachedKategoriler = typeof window !== 'undefined' ? getCache<Kategori[]>('/api/kategoriler') : null
-  
-  // SWR ile cache'li veri yükleme - Hastalar
-  const { data: hastalar = cachedHastalar || [], error: hastalarError, isLoading: hastalarLoading } = useSWR<Hasta[]>(
+  // PreloadData zaten veriyi yüklüyor, SWR cache'inden oku
+  // default değer YOK - eski veriyi göstermesin
+  const { data: hastalar, error: hastalarError, isLoading: hastalarLoading } = useSWR<Hasta[]>(
     '/api/hastalar',
     swrFetcher,
     {
-      fallbackData: cachedHastalar || undefined,
+      revalidateOnMount: false, // PreloadData zaten yükledi
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
       dedupingInterval: 5000,
@@ -48,11 +44,11 @@ export default function HastalarPage() {
   )
 
   // SWR ile cache'li veri yükleme - Kategoriler
-  const { data: kategorilerData = cachedKategoriler || [], error: kategorilerError } = useSWR<Kategori[]>(
+  const { data: kategorilerData, error: kategorilerError } = useSWR<Kategori[]>(
     '/api/kategoriler',
     swrFetcher,
     {
-      fallbackData: cachedKategoriler || undefined,
+      revalidateOnMount: false, // PreloadData zaten yükledi
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
       dedupingInterval: 5000,
@@ -60,7 +56,7 @@ export default function HastalarPage() {
     }
   )
 
-  const kategoriler = kategorilerData.map((k: any) => ({ id: k.id, ad: k.ad, renk: k.renk || '#3B82F6' }))
+  const kategoriler = (kategorilerData || []).map((k: any) => ({ id: k.id, ad: k.ad, renk: k.renk || '#3B82F6' }))
   
   const [searchTerm, setSearchTerm] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -77,7 +73,8 @@ export default function HastalarPage() {
     durum: 'aktif',
   })
 
-  const loading = hastalarLoading
+  // PreloadData yüklenene kadar veya veri yoksa loading göster
+  const loading = hastalarLoading || !hastalar
 
   const getKategoriRenk = (kategoriId: string) => {
     const kategori = kategoriler.find((k) => k.id === kategoriId)
@@ -204,7 +201,7 @@ export default function HastalarPage() {
     }
   }
 
-  const filteredHastalar = hastalar.filter(
+  const filteredHastalar = (hastalar || []).filter(
     (hasta) =>
       hasta.ad.toLowerCase().includes(searchTerm.toLowerCase()) ||
       hasta.soyad.toLowerCase().includes(searchTerm.toLowerCase()) ||

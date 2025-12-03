@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import useSWR, { mutate } from 'swr'
 import { FiPlus, FiEdit, FiTrash2, FiTag } from 'react-icons/fi'
-import { getCache, setCache } from '@/lib/cache'
+import { swrFetcher } from '@/lib/swr-fetcher'
 
 interface Kategori {
   id: string
@@ -12,68 +12,18 @@ interface Kategori {
   renk: string
 }
 
-// SWR fetcher fonksiyonu - localStorage cache kullanıyor (stale-while-revalidate)
-const fetcher = async (url: string) => {
-  const startTime = Date.now()
-  
-  // Önce localStorage'dan kontrol et
-  const cached = getCache(url)
-  
-  // Arka planda fresh data çek (cache olsa da olmasa da)
-  fetch(url, {
-    cache: 'no-store',
-    headers: {
-      'Cache-Control': 'no-cache',
-    },
-  })
-    .then(r => r.json())
-    .then(data => {
-      setCache(url, data)
-      mutate(url, data, { revalidate: false })
-    })
-    .catch(() => {})
-  
-  // Cache varsa hemen göster, yoksa API'den bekle
-  if (cached) {
-    const loadTime = Date.now() - startTime
-    console.log(`Kategoriler yüklendi (${loadTime}ms) - 📦 Cache (arka planda güncelleniyor)`)
-    return cached
-  }
-  
-  // Cache yoksa API'den çek
-  const response = await fetch(url, {
-    cache: 'no-store',
-    headers: {
-      'Cache-Control': 'no-cache',
-    },
-  })
-  const loadTime = Date.now() - startTime
-  
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Bilinmeyen hata' }))
-    throw new Error(error.error || 'Veri yüklenirken hata oluştu')
-  }
-  
-  const data = await response.json()
-  setCache(url, data) // localStorage'a kaydet
-  console.log(`Kategoriler yüklendi (${loadTime}ms) - 🌐 API`)
-  return data
-}
-
 export default function KategorilerPage() {
-  // localStorage'dan initial data al (sayfa yüklenir yüklenmez göster)
-  const cachedData = typeof window !== 'undefined' ? getCache<Kategori[]>('/api/kategoriler') : null
-  
-  // SWR ile cache'li veri yükleme
-  const { data: kategoriler = cachedData || [], error, isLoading } = useSWR<Kategori[]>(
+  // PreloadData zaten veriyi yüklüyor, SWR cache'inden oku
+  // default değer YOK - eski veriyi göstermesin
+  const { data: kategoriler, error, isLoading } = useSWR<Kategori[]>(
     '/api/kategoriler',
-    fetcher,
+    swrFetcher,
     {
-      fallbackData: cachedData || undefined, // İlk render'da cache'den göster
-      revalidateOnFocus: false, // Focus olduğunda yenileme
-      revalidateOnReconnect: true, // Bağlantı yenilendiğinde yenile
-      dedupingInterval: 5000, // 5 saniye içinde aynı istek tekrar yapılmaz
-      refreshInterval: 0, // Otomatik yenileme yok (manuel kontrol)
+      revalidateOnMount: false, // PreloadData zaten yükledi
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      dedupingInterval: 5000,
+      refreshInterval: 0,
     }
   )
 
@@ -86,7 +36,8 @@ export default function KategorilerPage() {
     renk: '#3B82F6',
   })
 
-  const loading = isLoading
+  // PreloadData yüklenene kadar veya veri yoksa loading göster
+  const loading = isLoading || !kategoriler
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -199,7 +150,7 @@ export default function KategorilerPage() {
         </div>
       )}
 
-      {loading ? (
+      {loading || !kategoriler ? (
         <div className="text-center py-12">
           <p className="text-gray-600">Yükleniyor...</p>
         </div>

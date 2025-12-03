@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import PreloadData from '@/components/PreloadData'
@@ -13,15 +13,31 @@ export default function SiteLayout({
 }) {
   const [isLoading, setIsLoading] = useState(true)
 
+  // Fallback: Eğer 2 saniye içinde PreloadData loading'i kapatmazsa, zorla kapat
+  useEffect(() => {
+    const fallbackTimeout = setTimeout(() => {
+      if (isLoading) {
+        console.warn('⚠️ SiteLayout timeout - zorla loading kapatılıyor')
+        setIsLoading(false)
+      }
+    }, 2000)
+
+    return () => clearTimeout(fallbackTimeout)
+  }, [isLoading])
+
   return (
     <>
       <PreloadData onLoadingChange={setIsLoading} />
       {isLoading && <SitePreloader />}
-      <Navbar />
-      <main className="min-h-screen">
-        {children}
-      </main>
-      <Footer />
+      {!isLoading && (
+        <>
+          <Navbar />
+          <main className="min-h-screen">
+            {children}
+          </main>
+          <Footer />
+        </>
+      )}
     </>
   )
 }

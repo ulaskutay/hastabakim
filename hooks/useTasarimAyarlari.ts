@@ -9,14 +9,19 @@ export function useTasarimAyarlari() {
     '/api/tasarim',
     swrFetcher,
     {
-      fallbackData: TASARIM_DEFAULTLARI,
+      // fallbackData yok - eski veriyi göstermesin
+      revalidateOnMount: false, // PreloadData zaten yükledi, tekrar fetch yapma
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
+      dedupingInterval: 5000,
     }
   )
 
+  // PreloadData tasarım ayarlarını önce yüklüyor, bu yüzden cache'den okuyacak
+  // Eğer data yoksa (PreloadData henüz yüklemediyse), default kullan (sadece fallback)
+  // Ama PreloadData yükledikten sonra fresh data olacak
   return {
-    ayarlar: data ?? TASARIM_DEFAULTLARI,
+    ayarlar: data || TASARIM_DEFAULTLARI, // || kullan - sadece undefined/null ise default
     error,
     isLoading,
     mutate,

@@ -15,9 +15,10 @@ export default function TasarimPage() {
     '/api/tasarim',
     swrFetcher,
     {
-      fallbackData: TASARIM_DEFAULTLARI,
+      revalidateOnMount: false, // PreloadData zaten yükledi
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
+      dedupingInterval: 5000,
     }
   )
   const initialLoading = !kayitliAyarlar && isLoading

@@ -23,15 +23,16 @@ export default function Services() {
   const { ayarlar } = useTasarimAyarlari()
   const primaryColor = ayarlar.primaryColor
   
-  // Her zaman fresh data çek
-  const { data: hizmetler = [], error, isLoading } = useSWR<Hizmet[]>(
+  // PreloadData zaten fresh data'yı yüklüyor, cache'den oku
+  // default değer YOK - eski veriyi göstermesin, sadece PreloadData'dan gelen veriyi göster
+  const { data: hizmetler, error, isLoading } = useSWR<Hizmet[]>(
     '/api/hizmetler',
     swrFetcher,
     {
-      revalidateOnMount: true,
-      revalidateOnFocus: true,
+      revalidateOnMount: false, // PreloadData zaten yükledi, tekrar fetch yapma
+      revalidateOnFocus: false,
       revalidateOnReconnect: true,
-      dedupingInterval: 0,
+      dedupingInterval: 5000,
       refreshInterval: 0,
       onError: (err) => {
         console.error('SWR hata:', err)
@@ -39,35 +40,18 @@ export default function Services() {
     }
   )
   
-  // Güvenlik kontrolü - her zaman array olduğundan emin ol
-  const safeHizmetler = Array.isArray(hizmetler) ? hizmetler : []
-
-  if (isLoading) {
-    return (
-      <section id="hizmetler" className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <p className="text-gray-600">Hizmetler yükleniyor...</p>
-          </div>
-        </div>
-      </section>
-    )
+  // PreloadData yüklenene kadar veya veri yoksa hiçbir şey gösterme
+  // Böylece eski veriyi göstermeyiz, sadece fresh veriyi gösteririz
+  if (isLoading || !hizmetler || !Array.isArray(hizmetler)) {
+    return null // PreloadData yüklenene kadar bekle
   }
 
   if (error) {
     console.error('Hizmetler yüklenirken hata:', error)
-    return (
-      <section id="hizmetler" className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <p className="text-red-600">Hizmetler yüklenirken bir hata oluştu.</p>
-          </div>
-        </div>
-      </section>
-    )
+    return null // Hata durumunda da gösterme
   }
 
-  if (safeHizmetler.length === 0) {
+  if (hizmetler.length === 0) {
     return null
   }
 
@@ -82,7 +66,7 @@ export default function Services() {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {safeHizmetler.map((hizmet) => {
+          {hizmetler.map((hizmet: Hizmet) => {
             const Icon = getIconComponent(hizmet.ikon)
             return (
               <div

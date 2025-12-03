@@ -1,19 +1,27 @@
-// Shared SWR fetcher - Her zaman fresh data çeker (frontend only)
-import { mutate } from 'swr'
-import { setCache } from './cache'
+// Shared SWR fetcher - Cache kontrolü yapar, cache'de varsa onu kullanır
+import { getCache, setCache } from './cache'
 
 export const swrFetcher = async <T = any>(url: string): Promise<T> => {
+  // Önce cache'de var mı kontrol et
+  const cachedData = getCache<T>(url)
+  if (cachedData !== null) {
+    console.log(`✅ ${url} cache'den yüklendi`)
+    return cachedData
+  }
+  
+  // Cache'de yoksa API'den çek
+  console.log(`🔄 ${url} API'den çekiliyor...`)
+  
   // URL'i parçala ve varsa query parametrelerini koru
   const [baseUrl, ...queryParts] = url.split('?')
   const queryString = queryParts.length > 0 ? queryParts.join('?') : ''
   const hasQuery = queryString.length > 0
   const originalUrl = hasQuery ? `${baseUrl}?${queryString}` : baseUrl
   
-  // Fetch için timestamp ekle - TÜM cache'leri bypass et (browser, HTTP, Next.js, Vercel)
+  // Fetch için timestamp ekle - HTTP cache'lerini bypass et
   const separator = hasQuery ? '&' : '?'
   const cacheBusterUrl = `${originalUrl}${separator}_t=${Date.now()}`
   
-  // Her zaman fresh data çek - cache'i tamamen bypass et
   const response = await fetch(cacheBusterUrl, {
     cache: 'no-store', // Browser cache'ini bypass et
     headers: {
@@ -30,9 +38,9 @@ export const swrFetcher = async <T = any>(url: string): Promise<T> => {
   
   const data = await response.json()
   
-  // Fresh data'yı cache'e kaydet (SWR key'i tam URL ile)
+  // Fresh data'yı cache'e kaydet
   setCache(url, data)
-  mutate(url, data, { revalidate: true })
+  console.log(`✅ ${url} API'den yüklendi ve cache'e kaydedildi`)
   
   return data
 }

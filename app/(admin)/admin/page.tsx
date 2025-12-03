@@ -3,7 +3,6 @@
 import useSWR from 'swr'
 import { FiUsers, FiCalendar, FiUser, FiActivity } from 'react-icons/fi'
 import Link from 'next/link'
-import { getCache } from '@/lib/cache'
 import { swrFetcher } from '@/lib/swr-fetcher'
 import { useTasarimAyarlari } from '@/hooks/useTasarimAyarlari'
 
@@ -28,17 +27,13 @@ export default function AdminDashboard() {
   const { ayarlar } = useTasarimAyarlari()
   const primaryColor = ayarlar.primaryColor
 
-  // localStorage'dan initial data al
-  const cachedHastalar = typeof window !== 'undefined' ? getCache<Hasta[]>('/api/hastalar') : null
-  const cachedRandevular = typeof window !== 'undefined' ? getCache<Randevu[]>('/api/randevular') : null
-  const cachedPersonel = typeof window !== 'undefined' ? getCache<Personel[]>('/api/personel') : null
-
-  // SWR ile cache'li veri yükleme
-  const { data: hastalar = cachedHastalar || [] } = useSWR<Hasta[]>(
+  // PreloadData zaten veriyi yüklüyor, SWR cache'inden oku
+  // default değer YOK - eski veriyi göstermesin
+  const { data: hastalar, isLoading: hastalarLoading } = useSWR<Hasta[]>(
     '/api/hastalar',
     swrFetcher,
     {
-      fallbackData: cachedHastalar || undefined,
+      revalidateOnMount: false, // PreloadData zaten yükledi
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
       dedupingInterval: 5000,
@@ -46,11 +41,11 @@ export default function AdminDashboard() {
     }
   )
 
-  const { data: randevular = cachedRandevular || [] } = useSWR<Randevu[]>(
+  const { data: randevular, isLoading: randevularLoading } = useSWR<Randevu[]>(
     '/api/randevular',
     swrFetcher,
     {
-      fallbackData: cachedRandevular || undefined,
+      revalidateOnMount: false, // PreloadData zaten yükledi
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
       dedupingInterval: 5000,
@@ -58,11 +53,11 @@ export default function AdminDashboard() {
     }
   )
 
-  const { data: personel = cachedPersonel || [] } = useSWR<Personel[]>(
+  const { data: personel, isLoading: personelLoading } = useSWR<Personel[]>(
     '/api/personel',
     swrFetcher,
     {
-      fallbackData: cachedPersonel || undefined,
+      revalidateOnMount: false, // PreloadData zaten yükledi
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
       dedupingInterval: 5000,

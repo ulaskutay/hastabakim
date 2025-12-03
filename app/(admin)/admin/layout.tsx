@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { FiHome, FiUsers, FiCalendar, FiUser, FiLogOut, FiSettings, FiTag, FiMail, FiGrid } from 'react-icons/fi'
@@ -29,6 +29,18 @@ export default function AdminLayout({
   const primaryColor = ayarlar.primaryColor
   const [isDataLoading, setIsDataLoading] = useState(true)
 
+  // Fallback: Eğer 3 saniye içinde PreloadData loading'i kapatmazsa, zorla kapat
+  useEffect(() => {
+    const fallbackTimeout = setTimeout(() => {
+      if (isDataLoading) {
+        console.warn('⚠️ PreloadData timeout - zorla loading kapatılıyor')
+        setIsDataLoading(false)
+      }
+    }, 3000)
+
+    return () => clearTimeout(fallbackTimeout)
+  }, [isDataLoading])
+
   const menuItems = [
     { href: '/admin', label: 'Dashboard', icon: FiHome },
     { href: '/admin/hastalar', label: 'Hastalar', icon: FiUsers },
@@ -44,8 +56,9 @@ export default function AdminLayout({
     <SWRConfig
       value={{
         fetcher,
+        revalidateOnMount: false, // Cache'den yükle, tekrar çekme
         revalidateOnFocus: false,
-        revalidateOnReconnect: true,
+        revalidateOnReconnect: false, // Bağlantı yenilendiğinde de çekme
         dedupingInterval: 5000,
         refreshInterval: 0,
       }}
