@@ -37,19 +37,53 @@ export default function Navbar() {
       : { r: 14, g: 165, b: 233 }
   }
 
-  useEffect(() => {
+  // localStorage'dan veri yükleme fonksiyonu
+  const loadAyarlar = () => {
     const stored = localStorage.getItem('tasarimAyarlari')
     if (stored) {
-      const parsed = JSON.parse(stored)
-      setAyarlar(parsed)
-      document.documentElement.style.setProperty('--primary-color', parsed.primaryColor)
+      try {
+        const parsed = JSON.parse(stored)
+        setAyarlar(parsed)
+        document.documentElement.style.setProperty('--primary-color', parsed.primaryColor)
+      } catch (error) {
+        console.error('Ayarlar parse hatası:', error)
+      }
     }
 
     // Menü öğelerini yükle
     const storedMenu = localStorage.getItem('menuItems')
     if (storedMenu) {
-      const parsed = JSON.parse(storedMenu)
-      setMenuItems(parsed)
+      try {
+        const parsed = JSON.parse(storedMenu)
+        setMenuItems(parsed)
+      } catch (error) {
+        console.error('Menü parse hatası:', error)
+      }
+    }
+  }
+
+  useEffect(() => {
+    // İlk yükleme
+    loadAyarlar()
+
+    // localStorage değişikliklerini dinle (diğer tab'ler için)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'tasarimAyarlari' || e.key === 'menuItems') {
+        loadAyarlar()
+      }
+    }
+
+    // Custom event dinle (aynı tab için)
+    const handleCustomStorageChange = () => {
+      loadAyarlar()
+    }
+
+    window.addEventListener('storage', handleStorageChange)
+    window.addEventListener('tasarimAyarlariUpdated', handleCustomStorageChange)
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('tasarimAyarlariUpdated', handleCustomStorageChange)
     }
   }, [])
 

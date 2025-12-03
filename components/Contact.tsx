@@ -38,11 +38,41 @@ export default function Contact() {
       : { r: 14, g: 165, b: 233 }
   }
 
-  useEffect(() => {
+  // localStorage'dan veri yükleme fonksiyonu
+  const loadAyarlar = () => {
     const stored = localStorage.getItem('tasarimAyarlari')
     if (stored) {
-      const parsed = JSON.parse(stored)
-      setAyarlar(parsed)
+      try {
+        const parsed = JSON.parse(stored)
+        setAyarlar(parsed)
+      } catch (error) {
+        console.error('Ayarlar parse hatası:', error)
+      }
+    }
+  }
+
+  useEffect(() => {
+    // İlk yükleme
+    loadAyarlar()
+
+    // localStorage değişikliklerini dinle (diğer tab'ler için)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'tasarimAyarlari') {
+        loadAyarlar()
+      }
+    }
+
+    // Custom event dinle (aynı tab için)
+    const handleCustomStorageChange = () => {
+      loadAyarlar()
+    }
+
+    window.addEventListener('storage', handleStorageChange)
+    window.addEventListener('tasarimAyarlariUpdated', handleCustomStorageChange)
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('tasarimAyarlariUpdated', handleCustomStorageChange)
     }
   }, [])
 

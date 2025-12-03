@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import useSWR, { mutate } from 'swr'
 import { FiPlus, FiEdit, FiTrash2, FiGrid, FiArrowUp, FiArrowDown } from 'react-icons/fi'
-import { getCache } from '@/lib/cache'
+import { getCache, clearCache } from '@/lib/cache'
 import { swrFetcher } from '@/lib/swr-fetcher'
 import * as Icons from 'react-icons/fi'
 
@@ -102,10 +102,13 @@ export default function HizmetlerPage() {
       })
 
       if (response.ok) {
-        // Cache'i güncelle
-        mutate('/api/hizmetler?all=true', async () => {
-          return await swrFetcher<Hizmet[]>('/api/hizmetler?all=true')
-        })
+        // Tüm ilgili cache'leri güncelle
+        const freshData = await swrFetcher<Hizmet[]>('/api/hizmetler?all=true')
+        mutate('/api/hizmetler?all=true', freshData, { revalidate: true })
+        mutate('/api/hizmetler', freshData, { revalidate: true })
+        // localStorage cache'ini de temizle
+        clearCache('/api/hizmetler?all=true')
+        clearCache('/api/hizmetler')
         setIsModalOpen(false)
         setEditingHizmet(null)
         setFormData({
@@ -148,10 +151,13 @@ export default function HizmetlerPage() {
       })
 
       if (response.ok) {
-        // Cache'i güncelle
-        mutate('/api/hizmetler?all=true', async () => {
-          return await swrFetcher<Hizmet[]>('/api/hizmetler?all=true')
-        })
+        // Tüm ilgili cache'leri güncelle
+        const freshData = await swrFetcher<Hizmet[]>('/api/hizmetler?all=true')
+        mutate('/api/hizmetler?all=true', freshData, { revalidate: true })
+        mutate('/api/hizmetler', freshData, { revalidate: true })
+        // localStorage cache'ini de temizle
+        clearCache('/api/hizmetler?all=true')
+        clearCache('/api/hizmetler')
       } else {
         const error = await response.json()
         alert('Hata: ' + error.error)
@@ -194,10 +200,13 @@ export default function HizmetlerPage() {
         }),
       ])
 
-      // Cache'i güncelle
-      mutate('/api/hizmetler?all=true', async () => {
-        return await swrFetcher<Hizmet[]>('/api/hizmetler?all=true')
-      })
+      // Tüm ilgili cache'leri güncelle
+      const freshData = await swrFetcher<Hizmet[]>('/api/hizmetler?all=true')
+      mutate('/api/hizmetler?all=true', freshData, { revalidate: true })
+      mutate('/api/hizmetler', freshData, { revalidate: true })
+      // localStorage cache'ini de temizle
+      clearCache('/api/hizmetler?all=true')
+      clearCache('/api/hizmetler')
     } catch (error: any) {
       console.error('Hata:', error)
       alert('Sıra değiştirilirken hata oluştu: ' + error.message)

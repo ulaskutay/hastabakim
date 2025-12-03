@@ -13,13 +13,43 @@ export default function Hero() {
     primaryColor: '#0ea5e9',
   })
 
-  useEffect(() => {
+  // localStorage'dan veri yükleme fonksiyonu
+  const loadAyarlar = () => {
     const stored = localStorage.getItem('tasarimAyarlari')
     if (stored) {
-      const parsed = JSON.parse(stored)
-      setAyarlar(parsed)
-      // CSS değişkenini güncelle
-      document.documentElement.style.setProperty('--primary-color', parsed.primaryColor)
+      try {
+        const parsed = JSON.parse(stored)
+        setAyarlar(parsed)
+        // CSS değişkenini güncelle
+        document.documentElement.style.setProperty('--primary-color', parsed.primaryColor)
+      } catch (error) {
+        console.error('Ayarlar parse hatası:', error)
+      }
+    }
+  }
+
+  useEffect(() => {
+    // İlk yükleme
+    loadAyarlar()
+
+    // localStorage değişikliklerini dinle (diğer tab'ler için)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'tasarimAyarlari') {
+        loadAyarlar()
+      }
+    }
+
+    // Custom event dinle (aynı tab için)
+    const handleCustomStorageChange = () => {
+      loadAyarlar()
+    }
+
+    window.addEventListener('storage', handleStorageChange)
+    window.addEventListener('tasarimAyarlariUpdated', handleCustomStorageChange)
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('tasarimAyarlariUpdated', handleCustomStorageChange)
     }
   }, [])
 

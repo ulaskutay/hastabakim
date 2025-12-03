@@ -77,6 +77,12 @@ export default function TasarimPage() {
 
   const handleSave = () => {
     localStorage.setItem('tasarimAyarlari', JSON.stringify(ayarlar))
+    
+    // Custom event dispatch et - frontend component'lerinin güncellenmesi için
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('tasarimAyarlariUpdated'))
+    }
+    
     // CSS değişkenlerini güncelle
     if (typeof document !== 'undefined') {
       document.documentElement.style.setProperty('--primary-color', ayarlar.primaryColor)
@@ -101,7 +107,7 @@ export default function TasarimPage() {
         document.head.appendChild(link)
       }
     }
-    alert('Tasarım ayarları kaydedildi! Logo ve favicon değişikliklerini görmek için ana sayfayı yenileyin.')
+    alert('Tasarım ayarları kaydedildi! Değişiklikler anında yansıyacak.')
   }
 
   const handleReset = () => {

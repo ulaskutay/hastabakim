@@ -41,11 +41,41 @@ export default function Services() {
   // Güvenlik kontrolü - her zaman array olduğundan emin ol
   const safeHizmetler = Array.isArray(hizmetler) ? hizmetler : []
 
-  useEffect(() => {
+  // localStorage'dan veri yükleme fonksiyonu
+  const loadPrimaryColor = () => {
     const stored = localStorage.getItem('tasarimAyarlari')
     if (stored) {
-      const parsed = JSON.parse(stored)
-      setPrimaryColor(parsed.primaryColor)
+      try {
+        const parsed = JSON.parse(stored)
+        setPrimaryColor(parsed.primaryColor)
+      } catch (error) {
+        console.error('Ayarlar parse hatası:', error)
+      }
+    }
+  }
+
+  useEffect(() => {
+    // İlk yükleme
+    loadPrimaryColor()
+
+    // localStorage değişikliklerini dinle (diğer tab'ler için)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'tasarimAyarlari') {
+        loadPrimaryColor()
+      }
+    }
+
+    // Custom event dinle (aynı tab için)
+    const handleCustomStorageChange = () => {
+      loadPrimaryColor()
+    }
+
+    window.addEventListener('storage', handleStorageChange)
+    window.addEventListener('tasarimAyarlariUpdated', handleCustomStorageChange)
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('tasarimAyarlariUpdated', handleCustomStorageChange)
     }
   }, [])
 
