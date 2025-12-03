@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { TASARIM_DEFAULTLARI, TasarimAyarlari } from '@/lib/tasarim-defaults'
 
@@ -8,12 +9,20 @@ export const fetchCache = 'force-no-store'
 
 const TASARIM_ID = 'default'
 
-const sanitizePayload = (body: Partial<TasarimAyarlari>): TasarimAyarlari => {
-  return {
-    ...TASARIM_DEFAULTLARI,
-    ...body,
+const sanitizePayload = (body: Partial<TasarimAyarlari>): TasarimAyarlari => ({
+  ...TASARIM_DEFAULTLARI,
+  ...body,
+})
+
+const parseTasarimData = (data: unknown): TasarimAyarlari => {
+  if (data && typeof data === 'object') {
+    return sanitizePayload(data as Partial<TasarimAyarlari>)
   }
+  return { ...TASARIM_DEFAULTLARI }
 }
+
+const toJsonObject = (value: TasarimAyarlari): Prisma.JsonObject =>
+  value as unknown as Prisma.JsonObject
 
 async function ensureTasarimKaydi(): Promise<TasarimAyarlari> {
   const existing = await prisma.tasarimAyari.findUnique({
@@ -21,17 +30,17 @@ async function ensureTasarimKaydi(): Promise<TasarimAyarlari> {
   })
 
   if (existing) {
-    return existing.data as TasarimAyarlari
+    return parseTasarimData(existing.data)
   }
 
   const created = await prisma.tasarimAyari.create({
     data: {
       id: TASARIM_ID,
-      data: TASARIM_DEFAULTLARI,
+      data: toJsonObject(TASARIM_DEFAULTLARI),
     },
   })
 
-  return created.data as TasarimAyarlari
+  return parseTasarimData(created.data)
 }
 
 export async function GET() {
@@ -54,11 +63,11 @@ export async function PUT(request: NextRequest) {
 
     const updated = await prisma.tasarimAyari.upsert({
       where: { id: TASARIM_ID },
-      update: { data: merged },
-      create: { id: TASARIM_ID, data: merged },
+      update: { data: toJsonObject(merged) },
+      create: { id: TASARIM_ID, data: toJsonObject(merged) },
     })
 
-    return NextResponse.json(updated.data)
+    return NextResponse.json(parseTasarimData(updated.data))
   } catch (error: any) {
     console.error('Tasarım ayarları güncellenirken hata:', error)
     return NextResponse.json(
