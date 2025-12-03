@@ -9,6 +9,7 @@ export default function Hero() {
     heroAltBaslik: 'Sevdikleriniz için en iyi bakım hizmetini sunuyoruz. Deneyimli ve güvenilir ekibimizle yanınızdayız.',
     heroButon1: 'İletişime Geç',
     heroButon2: 'Hizmetlerimiz',
+    heroGorsel: '',
     primaryColor: '#0ea5e9',
   })
 
@@ -68,12 +69,23 @@ export default function Hero() {
 
   return (
     <section
-      className="text-white"
+      className="text-white relative overflow-hidden"
       style={{
-        background: `linear-gradient(to right, ${ayarlar.primaryColor}, ${getGradientColor(ayarlar.primaryColor)})`,
+        background: ayarlar.heroGorsel
+          ? `url(${ayarlar.heroGorsel}) center/cover no-repeat`
+          : `linear-gradient(to right, ${ayarlar.primaryColor}, ${getGradientColor(ayarlar.primaryColor)})`,
       }}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+      {/* Overlay - Görsel varsa metin okunabilirliği için */}
+      {ayarlar.heroGorsel && (
+        <div
+          className="absolute inset-0"
+          style={{
+            background: `linear-gradient(to right, ${ayarlar.primaryColor}CC, ${getGradientColor(ayarlar.primaryColor)}CC)`,
+          }}
+        />
+      )}
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
         <div className="text-center">
           <div className="flex justify-center mb-6">
             <FiHeart className="text-6xl" style={{ color: 'rgba(255, 255, 255, 0.8)' }} />

@@ -11,6 +11,7 @@ interface TasarimAyarlari {
   heroAltBaslik: string
   heroButon1: string
   heroButon2: string
+  heroGorsel: string
   telefon: string
   whatsapp: string
   email: string
@@ -30,6 +31,7 @@ export default function TasarimPage() {
     heroAltBaslik: 'Sevdikleriniz için en iyi bakım hizmetini sunuyoruz. Deneyimli ve güvenilir ekibimizle yanınızdayız.',
     heroButon1: 'İletişime Geç',
     heroButon2: 'Hizmetlerimiz',
+    heroGorsel: '',
     telefon: '+90 (555) 123 45 67',
     whatsapp: '',
     email: 'info@hastabakim.com',
@@ -112,6 +114,7 @@ export default function TasarimPage() {
         heroAltBaslik: 'Sevdikleriniz için en iyi bakım hizmetini sunuyoruz. Deneyimli ve güvenilir ekibimizle yanınızdayız.',
         heroButon1: 'İletişime Geç',
         heroButon2: 'Hizmetlerimiz',
+        heroGorsel: '',
         telefon: '+90 (555) 123 45 67',
         whatsapp: '',
         email: 'info@hastabakim.com',
@@ -127,7 +130,7 @@ export default function TasarimPage() {
     }
   }
 
-  const handleImageUpload = (key: 'logo' | 'favicon', file: File | null) => {
+  const handleImageUpload = (key: 'logo' | 'favicon' | 'heroGorsel', file: File | null) => {
     if (!file) return
 
     // Dosya boyutu kontrolü (max 2MB)
@@ -151,7 +154,7 @@ export default function TasarimPage() {
     reader.readAsDataURL(file)
   }
 
-  const handleRemoveImage = (key: 'logo' | 'favicon') => {
+  const handleRemoveImage = (key: 'logo' | 'favicon' | 'heroGorsel') => {
     setAyarlar((prev) => ({ ...prev, [key]: '' }))
   }
 
@@ -436,6 +439,48 @@ export default function TasarimPage() {
                   e.currentTarget.style.boxShadow = ''
                 }}
                 />
+              </div>
+            </div>
+            {/* Hero Görsel Yükleme */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Hero Görseli
+              </label>
+              <div className="flex items-center space-x-4">
+                <div className="flex-1">
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/jpg,image/gif,image/svg+xml"
+                    onChange={(e) => handleImageUpload('heroGorsel', e.target.files?.[0] || null)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent text-sm"
+                    style={{ '--tw-ring-color': previewColor } as React.CSSProperties & { '--tw-ring-color': string }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = previewColor
+                      e.currentTarget.style.boxShadow = `0 0 0 2px ${previewColor}40`
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = ''
+                      e.currentTarget.style.boxShadow = ''
+                    }}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    PNG, JPG, GIF veya SVG formatında, maksimum 2MB. Görsel hero bölümünün arka planında gösterilecektir.
+                  </p>
+                </div>
+                {ayarlar.heroGorsel && (
+                  <div className="flex items-center space-x-2">
+                    <div className="w-32 h-20 border border-gray-300 rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center">
+                      <img src={ayarlar.heroGorsel} alt="Hero görsel önizleme" className="max-w-full max-h-full object-cover" />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImage('heroGorsel')}
+                      className="px-3 py-1 bg-red-500 text-white rounded-lg hover:bg-red-600 transition text-sm"
+                    >
+                      Kaldır
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
