@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import useSWR, { mutate } from 'swr'
 import { FiPlus, FiEdit, FiTrash2, FiGrid, FiArrowUp, FiArrowDown } from 'react-icons/fi'
-import { getCache, setCache } from '@/lib/cache'
+import { getCache } from '@/lib/cache'
+import { swrFetcher } from '@/lib/swr-fetcher'
 import * as Icons from 'react-icons/fi'
 
 interface Hizmet {
@@ -34,48 +35,6 @@ const availableIcons = [
   { name: 'FiMapPin', label: 'Konum' },
 ]
 
-// SWR fetcher fonksiyonu
-const fetcher = async (url: string) => {
-  const startTime = Date.now()
-  
-  const cached = getCache(url)
-  
-  fetch(url)
-    .then(r => r.json())
-    .then(data => {
-      // Array kontrolü yap
-      const safeData = Array.isArray(data) ? data : []
-      setCache(url, safeData)
-      mutate(url, safeData, { revalidate: false })
-    })
-    .catch(() => {})
-  
-  if (cached) {
-    const loadTime = Date.now() - startTime
-    console.log(`Hizmetler yüklendi (${loadTime}ms) - 📦 Cache (arka planda güncelleniyor)`)
-    return Array.isArray(cached) ? cached : []
-  }
-  
-  try {
-    const response = await fetch(url)
-    const loadTime = Date.now() - startTime
-    
-    if (!response.ok) {
-      console.warn('Hizmetler yüklenirken hata, boş array döndürülüyor')
-      return []
-    }
-    
-    const data = await response.json()
-    // Array kontrolü yap
-    const safeData = Array.isArray(data) ? data : []
-    setCache(url, safeData)
-    console.log(`Hizmetler yüklendi (${loadTime}ms) - 🌐 API`)
-    return safeData
-  } catch (error) {
-    console.error('Hizmetler yüklenirken hata:', error)
-    return []
-  }
-}
 
 // İkon bileşenini al
 const getIconComponent = (iconName: string) => {
@@ -84,14 +43,15 @@ const getIconComponent = (iconName: string) => {
 }
 
 export default function HizmetlerPage() {
+  // localStorage'dan initial data al (sayfa yüklenir yüklenmez göster)
   const cachedData = typeof window !== 'undefined' ? getCache<Hizmet[]>('/api/hizmetler?all=true') : null
-  const safeCachedData = Array.isArray(cachedData) ? cachedData : []
   
-  const { data: hizmetler = safeCachedData, error, isLoading } = useSWR<Hizmet[]>(
+  // SWR ile cache'li veri yükleme
+  const { data: hizmetler = cachedData || [], error, isLoading } = useSWR<Hizmet[]>(
     '/api/hizmetler?all=true',
-    fetcher,
+    swrFetcher,
     {
-      fallbackData: safeCachedData.length > 0 ? safeCachedData : undefined,
+      fallbackData: cachedData || undefined, // İlk render'da cache'den göster
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
       dedupingInterval: 5000,
@@ -142,9 +102,9 @@ export default function HizmetlerPage() {
       })
 
       if (response.ok) {
+        // Cache'i güncelle
         mutate('/api/hizmetler?all=true', async () => {
-          const data = await fetcher('/api/hizmetler?all=true')
-          return data
+          return await swrFetcher<Hizmet[]>('/api/hizmetler?all=true')
         })
         setIsModalOpen(false)
         setEditingHizmet(null)
@@ -188,9 +148,9 @@ export default function HizmetlerPage() {
       })
 
       if (response.ok) {
+        // Cache'i güncelle
         mutate('/api/hizmetler?all=true', async () => {
-          const data = await fetcher('/api/hizmetler?all=true')
-          return data
+          return await swrFetcher<Hizmet[]>('/api/hizmetler?all=true')
         })
       } else {
         const error = await response.json()
@@ -234,9 +194,9 @@ export default function HizmetlerPage() {
         }),
       ])
 
+      // Cache'i güncelle
       mutate('/api/hizmetler?all=true', async () => {
-        const data = await fetcher('/api/hizmetler?all=true')
-        return data
+        return await swrFetcher<Hizmet[]>('/api/hizmetler?all=true')
       })
     } catch (error: any) {
       console.error('Hata:', error)
