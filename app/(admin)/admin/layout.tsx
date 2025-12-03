@@ -1,12 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { FiHome, FiUsers, FiCalendar, FiUser, FiLogOut, FiSettings, FiTag, FiMail, FiGrid } from 'react-icons/fi'
 import { SWRConfig } from 'swr'
 import PreloadData from '@/components/PreloadData'
 import AdminPreloader from '@/components/AdminPreloader'
+import { useTasarimAyarlari } from '@/hooks/useTasarimAyarlari'
 
 // SWR fetcher fonksiyonu
 const fetcher = async (url: string) => {
@@ -24,16 +25,9 @@ export default function AdminLayout({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
-  const [primaryColor, setPrimaryColor] = useState('#0ea5e9')
+  const { ayarlar } = useTasarimAyarlari()
+  const primaryColor = ayarlar.primaryColor
   const [isDataLoading, setIsDataLoading] = useState(true)
-
-  useEffect(() => {
-    const stored = localStorage.getItem('tasarimAyarlari')
-    if (stored) {
-      const parsed = JSON.parse(stored)
-      setPrimaryColor(parsed.primaryColor || '#0ea5e9')
-    }
-  }, [])
 
   const menuItems = [
     { href: '/admin', label: 'Dashboard', icon: FiHome },

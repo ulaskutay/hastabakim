@@ -1,57 +1,15 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, type CSSProperties } from 'react'
 import { FiArrowRight, FiHeart } from 'react-icons/fi'
+import { useTasarimAyarlari } from '@/hooks/useTasarimAyarlari'
 
 export default function Hero() {
-  const [ayarlar, setAyarlar] = useState({
-    heroBaslik: 'Profesyonel Hasta & Yaşlı Bakım Hizmetleri',
-    heroAltBaslik: 'Sevdikleriniz için en iyi bakım hizmetini sunuyoruz. Deneyimli ve güvenilir ekibimizle yanınızdayız.',
-    heroButon1: 'İletişime Geç',
-    heroButon2: 'Hizmetlerimiz',
-    heroGorsel: '',
-    primaryColor: '#0ea5e9',
-  })
-
-  // localStorage'dan veri yükleme fonksiyonu
-  const loadAyarlar = () => {
-    const stored = localStorage.getItem('tasarimAyarlari')
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored)
-        setAyarlar(parsed)
-        // CSS değişkenini güncelle
-        document.documentElement.style.setProperty('--primary-color', parsed.primaryColor)
-      } catch (error) {
-        console.error('Ayarlar parse hatası:', error)
-      }
-    }
-  }
+  const { ayarlar } = useTasarimAyarlari()
 
   useEffect(() => {
-    // İlk yükleme
-    loadAyarlar()
-
-    // localStorage değişikliklerini dinle (diğer tab'ler için)
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'tasarimAyarlari') {
-        loadAyarlar()
-      }
-    }
-
-    // Custom event dinle (aynı tab için)
-    const handleCustomStorageChange = () => {
-      loadAyarlar()
-    }
-
-    window.addEventListener('storage', handleStorageChange)
-    window.addEventListener('tasarimAyarlariUpdated', handleCustomStorageChange)
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange)
-      window.removeEventListener('tasarimAyarlariUpdated', handleCustomStorageChange)
-    }
-  }, [])
+    document.documentElement.style.setProperty('--primary-color', ayarlar.primaryColor)
+  }, [ayarlar.primaryColor])
 
   // Renk fonksiyonları
   const hexToRgb = (hex: string) => {
@@ -140,7 +98,7 @@ export default function Hero() {
               href="#hizmetler"
               onClick={(e) => handleSmoothScroll(e, '#hizmetler')}
               className="bg-transparent border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white transition cursor-pointer"
-              style={{ '--hover-color': ayarlar.primaryColor } as React.CSSProperties & { '--hover-color': string }}
+              style={{ '--hover-color': ayarlar.primaryColor } as CSSProperties & { '--hover-color': string }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.color = ayarlar.primaryColor
               }}

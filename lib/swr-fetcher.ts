@@ -3,12 +3,15 @@ import { mutate } from 'swr'
 import { setCache } from './cache'
 
 export const swrFetcher = async <T = any>(url: string): Promise<T> => {
-  // URL'den query parametrelerini temizle (SWR key'i temiz tutmak için)
-  const cleanUrl = url.split('?')[0]
+  // URL'i parçala ve varsa query parametrelerini koru
+  const [baseUrl, ...queryParts] = url.split('?')
+  const queryString = queryParts.length > 0 ? queryParts.join('?') : ''
+  const hasQuery = queryString.length > 0
+  const originalUrl = hasQuery ? `${baseUrl}?${queryString}` : baseUrl
   
   // Fetch için timestamp ekle - TÜM cache'leri bypass et (browser, HTTP, Next.js, Vercel)
-  const separator = cleanUrl.includes('?') ? '&' : '?'
-  const cacheBusterUrl = `${cleanUrl}${separator}_t=${Date.now()}`
+  const separator = hasQuery ? '&' : '?'
+  const cacheBusterUrl = `${originalUrl}${separator}_t=${Date.now()}`
   
   // Her zaman fresh data çek - cache'i tamamen bypass et
   const response = await fetch(cacheBusterUrl, {
@@ -27,9 +30,9 @@ export const swrFetcher = async <T = any>(url: string): Promise<T> => {
   
   const data = await response.json()
   
-  // Fresh data'yı cache'e kaydet (SWR key'i orijinal URL ile)
-  setCache(cleanUrl, data)
-  mutate(cleanUrl, data, { revalidate: true })
+  // Fresh data'yı cache'e kaydet (SWR key'i tam URL ile)
+  setCache(url, data)
+  mutate(url, data, { revalidate: true })
   
   return data
 }

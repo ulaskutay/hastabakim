@@ -1,22 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { FiUser } from 'react-icons/fi'
+import { useTasarimAyarlari } from '@/hooks/useTasarimAyarlari'
 
 export default function SitePreloader() {
-  const [ayarlar, setAyarlar] = useState({
-    logo: '',
-    siteBaslik: 'Hasta Bakım',
-    primaryColor: '#0ea5e9',
-  })
-
-  useEffect(() => {
-    const stored = localStorage.getItem('tasarimAyarlari')
-    if (stored) {
-      const parsed = JSON.parse(stored)
-      setAyarlar(parsed)
-    }
-  }, [])
+  const { ayarlar } = useTasarimAyarlari()
 
   return (
     <div className="fixed inset-0 bg-white flex items-center justify-center z-50">

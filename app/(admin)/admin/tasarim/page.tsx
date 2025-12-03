@@ -1,48 +1,57 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import useSWR from 'swr'
 import { FiSave, FiRefreshCw, FiEye } from 'react-icons/fi'
-
-interface TasarimAyarlari {
-  siteBaslik: string
-  siteAciklama: string
-  primaryColor: string
-  heroBaslik: string
-  heroAltBaslik: string
-  heroButon1: string
-  heroButon2: string
-  heroGorsel: string
-  telefon: string
-  whatsapp: string
-  email: string
-  email2: string
-  adres: string
-  footerMetin: string
-  logo: string
-  favicon: string
-}
+import { TASARIM_DEFAULTLARI, TasarimAyarlari } from '@/lib/tasarim-defaults'
+import { swrFetcher } from '@/lib/swr-fetcher'
 
 export default function TasarimPage() {
-  const [ayarlar, setAyarlar] = useState<TasarimAyarlari>({
-    siteBaslik: 'Hasta Bakım',
-    siteAciklama: 'Profesyonel hasta bakım ve yaşlı bakım hizmetleri',
-    primaryColor: '#0ea5e9',
-    heroBaslik: 'Profesyonel Hasta & Yaşlı Bakım Hizmetleri',
-    heroAltBaslik: 'Sevdikleriniz için en iyi bakım hizmetini sunuyoruz. Deneyimli ve güvenilir ekibimizle yanınızdayız.',
-    heroButon1: 'İletişime Geç',
-    heroButon2: 'Hizmetlerimiz',
-    heroGorsel: '',
-    telefon: '+90 (555) 123 45 67',
-    whatsapp: '',
-    email: 'info@hastabakim.com',
-    email2: 'destek@hastabakim.com',
-    adres: 'Örnek Mahallesi, Bakım Sokak No:123\nŞişli, İstanbul, Türkiye',
-    footerMetin: 'Profesyonel hasta bakım ve yaşlı bakım hizmetleri ile yanınızdayız.',
-    logo: '',
-    favicon: '',
-  })
+  const [ayarlar, setAyarlar] = useState<TasarimAyarlari>({ ...TASARIM_DEFAULTLARI })
+  const [previewColor, setPreviewColor] = useState(TASARIM_DEFAULTLARI.primaryColor)
+  const [saving, setSaving] = useState(false)
+  const [resetting, setResetting] = useState(false)
+  const { data: kayitliAyarlar, isLoading, mutate } = useSWR<TasarimAyarlari>(
+    '/api/tasarim',
+    swrFetcher,
+    {
+      fallbackData: TASARIM_DEFAULTLARI,
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+    }
+  )
 
-  const [previewColor, setPreviewColor] = useState('#0ea5e9')
+  const applyTheme = (current: TasarimAyarlari) => {
+    if (typeof document === 'undefined') return
+    document.documentElement.style.setProperty('--primary-color', current.primaryColor)
+
+    if (current.favicon) {
+      const existingLinks = document.querySelectorAll("link[rel*='icon']")
+      existingLinks.forEach((link) => link.remove())
+
+      const link = document.createElement('link')
+      link.rel = 'icon'
+      link.type = current.favicon.startsWith('data:image/svg')
+        ? 'image/svg+xml'
+        : current.favicon.startsWith('data:image/png')
+        ? 'image/png'
+        : current.favicon.startsWith('data:image/jpeg') || current.favicon.startsWith('data:image/jpg')
+        ? 'image/jpeg'
+        : current.favicon.startsWith('data:image/x-icon') || current.favicon.startsWith('data:image/vnd.microsoft.icon')
+        ? 'image/x-icon'
+        : 'image/png'
+      link.href = current.favicon
+      document.head.appendChild(link)
+    }
+  }
+
+  useEffect(() => {
+    if (kayitliAyarlar) {
+      setAyarlar(kayitliAyarlar)
+      setPreviewColor(kayitliAyarlar.primaryColor)
+      applyTheme(kayitliAyarlar)
+    }
+  }, [kayitliAyarlar])
 
   const hexToRgb = (hex: string) => {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
@@ -55,16 +64,6 @@ export default function TasarimPage() {
       : { r: 14, g: 165, b: 233 }
   }
 
-  useEffect(() => {
-    // localStorage'dan ayarları yükle
-    const stored = localStorage.getItem('tasarimAyarlari')
-    if (stored) {
-      const parsed = JSON.parse(stored)
-      setAyarlar(parsed)
-      setPreviewColor(parsed.primaryColor)
-    }
-  }, [])
-
   const handleChange = (key: keyof TasarimAyarlari, value: string) => {
     setAyarlar((prev) => {
       const updated = { ...prev, [key]: value }
@@ -75,64 +74,65 @@ export default function TasarimPage() {
     })
   }
 
-  const handleSave = () => {
-    localStorage.setItem('tasarimAyarlari', JSON.stringify(ayarlar))
-    
-    // Custom event dispatch et - frontend component'lerinin güncellenmesi için
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new Event('tasarimAyarlariUpdated'))
-    }
-    
-    // CSS değişkenlerini güncelle
-    if (typeof document !== 'undefined') {
-      document.documentElement.style.setProperty('--primary-color', ayarlar.primaryColor)
-      
-      // Favicon'u güncelle
-      if (ayarlar.favicon) {
-        const existingLinks = document.querySelectorAll("link[rel*='icon']")
-        existingLinks.forEach((link) => link.remove())
-        
-        const link = document.createElement('link')
-        link.rel = 'icon'
-        link.type = ayarlar.favicon.startsWith('data:image/svg') 
-          ? 'image/svg+xml' 
-          : ayarlar.favicon.startsWith('data:image/png')
-          ? 'image/png'
-          : ayarlar.favicon.startsWith('data:image/jpeg') || ayarlar.favicon.startsWith('data:image/jpg')
-          ? 'image/jpeg'
-          : ayarlar.favicon.startsWith('data:image/x-icon') || ayarlar.favicon.startsWith('data:image/vnd.microsoft.icon')
-          ? 'image/x-icon'
-          : 'image/png'
-        link.href = ayarlar.favicon
-        document.head.appendChild(link)
+  const handleSave = async () => {
+    try {
+      setSaving(true)
+      const response = await fetch('/api/tasarim', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(ayarlar),
+      })
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}))
+        throw new Error(error.error || 'Tasarım ayarları kaydedilemedi.')
       }
+
+      const updated: TasarimAyarlari = await response.json()
+      setAyarlar(updated)
+      setPreviewColor(updated.primaryColor)
+      mutate(updated, { revalidate: false })
+      applyTheme(updated)
+      alert('Tasarım ayarları kaydedildi! Değişiklikler anında yansıyacak.')
+    } catch (error: any) {
+      alert(error.message || 'Tasarım ayarları kaydedilirken hata oluştu.')
+    } finally {
+      setSaving(false)
     }
-    alert('Tasarım ayarları kaydedildi! Değişiklikler anında yansıyacak.')
   }
 
-  const handleReset = () => {
-    if (confirm('Tüm tasarım ayarlarını varsayılan değerlere sıfırlamak istediğinizden emin misiniz?')) {
-      const defaultAyarlar: TasarimAyarlari = {
-        siteBaslik: 'Hasta Bakım',
-        siteAciklama: 'Profesyonel hasta bakım ve yaşlı bakım hizmetleri',
-        primaryColor: '#0ea5e9',
-        heroBaslik: 'Profesyonel Hasta & Yaşlı Bakım Hizmetleri',
-        heroAltBaslik: 'Sevdikleriniz için en iyi bakım hizmetini sunuyoruz. Deneyimli ve güvenilir ekibimizle yanınızdayız.',
-        heroButon1: 'İletişime Geç',
-        heroButon2: 'Hizmetlerimiz',
-        heroGorsel: '',
-        telefon: '+90 (555) 123 45 67',
-        whatsapp: '',
-        email: 'info@hastabakim.com',
-        email2: 'destek@hastabakim.com',
-        adres: 'Örnek Mahallesi, Bakım Sokak No:123\nŞişli, İstanbul, Türkiye',
-        footerMetin: 'Profesyonel hasta bakım ve yaşlı bakım hizmetleri ile yanınızdayız.',
-        logo: '',
-        favicon: '',
-      }
+  const handleReset = async () => {
+    if (!confirm('Tüm tasarım ayarlarını varsayılan değerlere sıfırlamak istediğinizden emin misiniz?')) {
+      return
+    }
+
+    try {
+      setResetting(true)
+      const defaultAyarlar = { ...TASARIM_DEFAULTLARI }
       setAyarlar(defaultAyarlar)
       setPreviewColor(defaultAyarlar.primaryColor)
-      localStorage.setItem('tasarimAyarlari', JSON.stringify(defaultAyarlar))
+
+      const response = await fetch('/api/tasarim', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(defaultAyarlar),
+      })
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}))
+        throw new Error(error.error || 'Tasarım ayarları sıfırlanamadı.')
+      }
+
+      mutate(defaultAyarlar, { revalidate: false })
+      applyTheme(defaultAyarlar)
+    } catch (error: any) {
+      alert(error.message || 'Varsayılanlara dönerken hata oluştu.')
+    } finally {
+      setResetting(false)
     }
   }
 
@@ -179,25 +179,29 @@ export default function TasarimPage() {
           </a>
           <button
             onClick={handleReset}
-            className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition flex items-center space-x-2"
+            disabled={resetting || saving || isLoading}
+            className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <FiRefreshCw />
-            <span>Sıfırla</span>
+            <span>{resetting ? 'Sıfırlanıyor...' : 'Sıfırla'}</span>
           </button>
           <button
             onClick={handleSave}
-            className="text-white px-4 py-2 rounded-lg transition flex items-center space-x-2"
+            disabled={saving || isLoading}
+            className="text-white px-4 py-2 rounded-lg transition flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ backgroundColor: previewColor }}
             onMouseEnter={(e) => {
-              const rgb = hexToRgb(previewColor)
-              e.currentTarget.style.backgroundColor = `rgb(${Math.max(0, rgb.r - 20)}, ${Math.max(0, rgb.g - 20)}, ${Math.max(0, rgb.b - 20)})`
+              if (!saving) {
+                const rgb = hexToRgb(previewColor)
+                e.currentTarget.style.backgroundColor = `rgb(${Math.max(0, rgb.r - 20)}, ${Math.max(0, rgb.g - 20)}, ${Math.max(0, rgb.b - 20)})`
+              }
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.backgroundColor = previewColor
             }}
           >
             <FiSave />
-            <span>Kaydet</span>
+            <span>{saving ? 'Kaydediliyor...' : 'Kaydet'}</span>
           </button>
         </div>
       </div>

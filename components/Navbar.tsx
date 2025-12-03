@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { FiMenu, FiX, FiUser } from 'react-icons/fi'
+import { useTasarimAyarlari } from '@/hooks/useTasarimAyarlari'
 
 interface MenuItem {
   id: string
@@ -14,11 +15,7 @@ interface MenuItem {
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
-  const [ayarlar, setAyarlar] = useState({
-    siteBaslik: 'Hasta Bakım',
-    primaryColor: '#0ea5e9',
-    logo: '',
-  })
+  const { ayarlar } = useTasarimAyarlari()
   const [menuItems, setMenuItems] = useState<MenuItem[]>([
     { id: '1', label: 'Ana Sayfa', href: '/', visible: true, order: 1 },
     { id: '2', label: 'Hizmetler', href: '/#hizmetler', visible: true, order: 2 },
@@ -37,25 +34,13 @@ export default function Navbar() {
       : { r: 14, g: 165, b: 233 }
   }
 
-  // localStorage'dan veri yükleme fonksiyonu
-  const loadAyarlar = () => {
-    const stored = localStorage.getItem('tasarimAyarlari')
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored)
-        setAyarlar(parsed)
-        document.documentElement.style.setProperty('--primary-color', parsed.primaryColor)
-      } catch (error) {
-        console.error('Ayarlar parse hatası:', error)
-      }
-    }
-
-    // Menü öğelerini yükle
+  // Menü öğelerini yükle
+  const loadMenuItems = () => {
     const storedMenu = localStorage.getItem('menuItems')
     if (storedMenu) {
       try {
-        const parsed = JSON.parse(storedMenu)
-        setMenuItems(parsed)
+      const parsed = JSON.parse(storedMenu)
+      setMenuItems(parsed)
       } catch (error) {
         console.error('Menü parse hatası:', error)
       }
@@ -63,29 +48,24 @@ export default function Navbar() {
   }
 
   useEffect(() => {
-    // İlk yükleme
-    loadAyarlar()
+    loadMenuItems()
 
-    // localStorage değişikliklerini dinle (diğer tab'ler için)
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'tasarimAyarlari' || e.key === 'menuItems') {
-        loadAyarlar()
+      if (e.key === 'menuItems') {
+        loadMenuItems()
       }
     }
 
-    // Custom event dinle (aynı tab için)
-    const handleCustomStorageChange = () => {
-      loadAyarlar()
-    }
-
     window.addEventListener('storage', handleStorageChange)
-    window.addEventListener('tasarimAyarlariUpdated', handleCustomStorageChange)
 
     return () => {
       window.removeEventListener('storage', handleStorageChange)
-      window.removeEventListener('tasarimAyarlariUpdated', handleCustomStorageChange)
     }
   }, [])
+
+  useEffect(() => {
+    document.documentElement.style.setProperty('--primary-color', ayarlar.primaryColor)
+  }, [ayarlar.primaryColor])
 
   const handleMenuClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     // Anchor link kontrolü (# ile başlayan)

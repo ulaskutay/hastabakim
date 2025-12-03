@@ -84,3 +84,12 @@ model Hizmet {
 
   @@map("hizmetler")
 }
+
+model TasarimAyari {
+  id        String   @id @default("default")
+  data      Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("tasarim_ayarlar")
+}

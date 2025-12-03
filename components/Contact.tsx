@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect, FormEvent } from 'react'
+import { useState, FormEvent } from 'react'
 import { FiMail, FiPhone, FiMapPin, FiSend } from 'react-icons/fi'
 import { FaWhatsapp } from 'react-icons/fa'
+import { useTasarimAyarlari } from '@/hooks/useTasarimAyarlari'
 
 export default function Contact() {
   const [formData, setFormData] = useState({
@@ -12,14 +13,7 @@ export default function Contact() {
     message: '',
   })
 
-  const [ayarlar, setAyarlar] = useState({
-    telefon: '+90 (555) 123 45 67',
-    whatsapp: '',
-    email: 'info@hastabakim.com',
-    email2: 'destek@hastabakim.com',
-    adres: 'Örnek Mahallesi, Bakım Sokak No:123\nŞişli, İstanbul, Türkiye',
-    primaryColor: '#0ea5e9',
-  })
+  const { ayarlar } = useTasarimAyarlari()
 
   const [submitting, setSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState<{
@@ -38,43 +32,6 @@ export default function Contact() {
       : { r: 14, g: 165, b: 233 }
   }
 
-  // localStorage'dan veri yükleme fonksiyonu
-  const loadAyarlar = () => {
-    const stored = localStorage.getItem('tasarimAyarlari')
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored)
-        setAyarlar(parsed)
-      } catch (error) {
-        console.error('Ayarlar parse hatası:', error)
-      }
-    }
-  }
-
-  useEffect(() => {
-    // İlk yükleme
-    loadAyarlar()
-
-    // localStorage değişikliklerini dinle (diğer tab'ler için)
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'tasarimAyarlari') {
-        loadAyarlar()
-      }
-    }
-
-    // Custom event dinle (aynı tab için)
-    const handleCustomStorageChange = () => {
-      loadAyarlar()
-    }
-
-    window.addEventListener('storage', handleStorageChange)
-    window.addEventListener('tasarimAyarlariUpdated', handleCustomStorageChange)
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange)
-      window.removeEventListener('tasarimAyarlariUpdated', handleCustomStorageChange)
-    }
-  }, [])
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()

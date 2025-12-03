@@ -6,12 +6,11 @@ import { getCache, setCache } from '@/lib/cache'
 
 // Fetcher fonksiyonu - cache bypass ile fresh data çek
 const fetcher = async (url: string) => {
-  // URL'den query parametrelerini temizle
-  const cleanUrl = url.split('?')[0]
-  
-  // Fetch için timestamp ekle - TÜM cache'leri bypass et (browser, HTTP, Next.js, Vercel)
-  const separator = cleanUrl.includes('?') ? '&' : '?'
-  const cacheBusterUrl = `${cleanUrl}${separator}_t=${Date.now()}`
+  const [baseUrl, ...queryParts] = url.split('?')
+  const queryString = queryParts.length > 0 ? queryParts.join('?') : ''
+  const originalUrl = queryString ? `${baseUrl}?${queryString}` : baseUrl
+  const separator = queryString ? '&' : '?'
+  const cacheBusterUrl = `${originalUrl}${separator}_t=${Date.now()}`
   
   const response = await fetch(cacheBusterUrl, {
     cache: 'no-store', // Browser cache'ini bypass et
@@ -52,6 +51,7 @@ export default function PreloadData({ onLoadingChange }: { onLoadingChange?: (lo
           '/api/personel',
           '/api/randevular',
           '/api/hizmetler',
+          '/api/tasarim',
         ]
         
         // Her zaman fresh data çek - cache'i bypass et

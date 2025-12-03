@@ -1,11 +1,11 @@
 'use client'
 
-import { useState } from 'react'
 import useSWR from 'swr'
 import { FiUsers, FiCalendar, FiUser, FiActivity } from 'react-icons/fi'
 import Link from 'next/link'
 import { getCache } from '@/lib/cache'
 import { swrFetcher } from '@/lib/swr-fetcher'
+import { useTasarimAyarlari } from '@/hooks/useTasarimAyarlari'
 
 interface Hasta {
   id: string
@@ -25,7 +25,8 @@ interface Randevu {
 }
 
 export default function AdminDashboard() {
-  const [primaryColor, setPrimaryColor] = useState('#0ea5e9')
+  const { ayarlar } = useTasarimAyarlari()
+  const primaryColor = ayarlar.primaryColor
 
   // localStorage'dan initial data al
   const cachedHastalar = typeof window !== 'undefined' ? getCache<Hasta[]>('/api/hastalar') : null
@@ -68,17 +69,6 @@ export default function AdminDashboard() {
       refreshInterval: 0,
     }
   )
-
-  // Tasarım ayarlarından renk al
-  if (typeof window !== 'undefined') {
-    const tasarimAyarlari = localStorage.getItem('tasarimAyarlari')
-    if (tasarimAyarlari) {
-      const parsed = JSON.parse(tasarimAyarlari)
-      if (parsed.primaryColor && parsed.primaryColor !== primaryColor) {
-        setPrimaryColor(parsed.primaryColor)
-      }
-    }
-  }
 
   // İstatistikleri hesapla
   const stats = {

@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import useSWR from 'swr'
 import * as Icons from 'react-icons/fi'
 import { swrFetcher } from '@/lib/swr-fetcher'
+import { useTasarimAyarlari } from '@/hooks/useTasarimAyarlari'
 
 interface Hizmet {
   id: string
@@ -20,7 +20,8 @@ const getIconComponent = (iconName: string) => {
 }
 
 export default function Services() {
-  const [primaryColor, setPrimaryColor] = useState('#0ea5e9')
+  const { ayarlar } = useTasarimAyarlari()
+  const primaryColor = ayarlar.primaryColor
   
   // Her zaman fresh data çek
   const { data: hizmetler = [], error, isLoading } = useSWR<Hizmet[]>(
@@ -40,44 +41,6 @@ export default function Services() {
   
   // Güvenlik kontrolü - her zaman array olduğundan emin ol
   const safeHizmetler = Array.isArray(hizmetler) ? hizmetler : []
-
-  // localStorage'dan veri yükleme fonksiyonu
-  const loadPrimaryColor = () => {
-    const stored = localStorage.getItem('tasarimAyarlari')
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored)
-        setPrimaryColor(parsed.primaryColor)
-      } catch (error) {
-        console.error('Ayarlar parse hatası:', error)
-      }
-    }
-  }
-
-  useEffect(() => {
-    // İlk yükleme
-    loadPrimaryColor()
-
-    // localStorage değişikliklerini dinle (diğer tab'ler için)
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'tasarimAyarlari') {
-        loadPrimaryColor()
-      }
-    }
-
-    // Custom event dinle (aynı tab için)
-    const handleCustomStorageChange = () => {
-      loadPrimaryColor()
-    }
-
-    window.addEventListener('storage', handleStorageChange)
-    window.addEventListener('tasarimAyarlariUpdated', handleCustomStorageChange)
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange)
-      window.removeEventListener('tasarimAyarlariUpdated', handleCustomStorageChange)
-    }
-  }, [])
 
   if (isLoading) {
     return (

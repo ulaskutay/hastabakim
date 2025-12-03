@@ -77,6 +77,15 @@ export default function HizmetlerPage() {
 
   const loading = isLoading
 
+  const refreshHizmetler = async () => {
+    clearCache('/api/hizmetler?all=true')
+    clearCache('/api/hizmetler')
+    await Promise.all([
+      mutate('/api/hizmetler?all=true'),
+      mutate('/api/hizmetler'),
+    ])
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSubmitting(true)
@@ -102,13 +111,7 @@ export default function HizmetlerPage() {
       })
 
       if (response.ok) {
-        // Tüm ilgili cache'leri güncelle
-        const freshData = await swrFetcher<Hizmet[]>('/api/hizmetler?all=true')
-        mutate('/api/hizmetler?all=true', freshData, { revalidate: true })
-        mutate('/api/hizmetler', freshData, { revalidate: true })
-        // localStorage cache'ini de temizle
-        clearCache('/api/hizmetler?all=true')
-        clearCache('/api/hizmetler')
+        await refreshHizmetler()
         setIsModalOpen(false)
         setEditingHizmet(null)
         setFormData({
@@ -151,13 +154,7 @@ export default function HizmetlerPage() {
       })
 
       if (response.ok) {
-        // Tüm ilgili cache'leri güncelle
-        const freshData = await swrFetcher<Hizmet[]>('/api/hizmetler?all=true')
-        mutate('/api/hizmetler?all=true', freshData, { revalidate: true })
-        mutate('/api/hizmetler', freshData, { revalidate: true })
-        // localStorage cache'ini de temizle
-        clearCache('/api/hizmetler?all=true')
-        clearCache('/api/hizmetler')
+        await refreshHizmetler()
       } else {
         const error = await response.json()
         alert('Hata: ' + error.error)
@@ -200,13 +197,7 @@ export default function HizmetlerPage() {
         }),
       ])
 
-      // Tüm ilgili cache'leri güncelle
-      const freshData = await swrFetcher<Hizmet[]>('/api/hizmetler?all=true')
-      mutate('/api/hizmetler?all=true', freshData, { revalidate: true })
-      mutate('/api/hizmetler', freshData, { revalidate: true })
-      // localStorage cache'ini de temizle
-      clearCache('/api/hizmetler?all=true')
-      clearCache('/api/hizmetler')
+      await refreshHizmetler()
     } catch (error: any) {
       console.error('Hata:', error)
       alert('Sıra değiştirilirken hata oluştu: ' + error.message)
