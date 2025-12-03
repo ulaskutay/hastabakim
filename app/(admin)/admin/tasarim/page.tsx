@@ -20,6 +20,7 @@ export default function TasarimPage() {
       revalidateOnReconnect: true,
     }
   )
+  const initialLoading = !kayitliAyarlar && isLoading
 
   const applyTheme = (current: TasarimAyarlari) => {
     if (typeof document === 'undefined') return
@@ -179,7 +180,7 @@ export default function TasarimPage() {
           </a>
           <button
             onClick={handleReset}
-            disabled={resetting || saving || isLoading}
+            disabled={resetting || saving || initialLoading}
             className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <FiRefreshCw />
@@ -187,7 +188,7 @@ export default function TasarimPage() {
           </button>
           <button
             onClick={handleSave}
-            disabled={saving || isLoading}
+            disabled={saving || initialLoading}
             className="text-white px-4 py-2 rounded-lg transition flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ backgroundColor: previewColor }}
             onMouseEnter={(e) => {
